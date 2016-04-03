@@ -5393,7 +5393,7 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":41}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":42}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
 
@@ -5776,7 +5776,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":41}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":42}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -6532,7 +6532,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":37,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":38,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -6570,32 +6570,78 @@ module.exports={
 },{}],37:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
-var GRAVITY = 0.5;
+
+var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false };
+var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true  };
+var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true  };
+
+function getTileFromMapItem(mapItem) {
+	if (!mapItem) return EMPTY;
+	switch (mapItem.sprite) {
+		case 0: return SOLID;
+		case 1: return ONE_WAY;
+		default: return EMPTY;
+	}
+}
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+function Level(map) {
+	var bobPosition = map.find(255)[0];
+
+	this.map    = map;
+	this.bob    = { x: bobPosition.x * TILE_WIDTH, y: bobPosition.y * TILE_HEIGHT };
+	this.grid   = map.copy().items;
+	this.width  = map.width;
+	this.height = map.height;
+
+	for (var x = 0; x < map.width;  x++) {
+	for (var y = 0; y < map.height; y++) {
+		this.grid[x][y] = getTileFromMapItem(map.items[x][y]);
+	}}
+}
+
+Level.prototype.getAt = function (x, y) {
+	x = ~~(x / TILE_WIDTH);
+	y = ~~(y / TILE_HEIGHT);
+	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return EMPTY;
+	return this.grid[x][y];
+};
+
+module.exports = Level;
+},{}],38:[function(require,module,exports){
+var Level = require('./Level.js');
+
+var TILE_WIDTH  = settings.spriteSize[0];
+var TILE_HEIGHT = settings.spriteSize[1];
+var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
 var scrollX = 0;
 var scrollY = 0;
-var level = getMap("mario");
-// level.setSpritesheet(assets.spritesheet_BAK);
+
 paper(6);
 
-var bobPosition = level.find(153)[0];
-level.remove(bobPosition.x, bobPosition.y);
+var level = new Level(getMap("geo0"));
+var background = getMap("bg0");
 
-Map.prototype.getAt = function (x, y) {
-	return this.get(~~(x / TILE_WIDTH), ~~(y / TILE_HEIGHT));
-};
+// var bobPosition = level.find(255)[0];
+// level.remove(bobPosition.x, bobPosition.y);
 
-function Sprite() {
-	this.x = 0;
-	this.y = 0;
+// Map.prototype.getAt = function (x, y) {
+// 	return this.get(~~(x / TILE_WIDTH), ~~(y / TILE_HEIGHT));
+// };
+
+function Bob(x, y) {
+	this.x  = x || 0;
+	this.y  = y || 0;
 	this.sx = 0;
 	this.sy = 0;
 
 	this.grounded = false;
+	this.jumping  = 0;
 }
 
-Sprite.prototype.update = function () {
+Bob.prototype.update = function () {
 	if (!this.grounded) {
 		this.sy += GRAVITY;
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
@@ -6607,8 +6653,9 @@ Sprite.prototype.update = function () {
 	// check collision
 	if (!this.grounded && this.sy > 0) {
 		var tileD = level.getAt(this.x, this.y + 8);
-		if (tileD && tileD.sprite === 0) {
+		if (tileD.isTopSolid) {
 			this.grounded = true;
+			this.jumping = 0;
 			this.sy = 0;
 			y = ~~((this.y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
 		}
@@ -6618,24 +6665,19 @@ Sprite.prototype.update = function () {
 	this.y = y;
 };
 
-Sprite.prototype.jump = function () {
-	// if (!this.grounded) return;
+Bob.prototype.jump = function () {
+	if (!this.grounded && this.jumping > 12) return;
+	this.jumping++;
 	this.grounded = false;
-	this.sy = -3;
+	this.sy = -3 + this.jumping * 0.08;
 }
 
-Sprite.prototype.draw = function () {
+Bob.prototype.draw = function () {
 	sprite(153, this.x, this.y);
 };
 
 
-
-var bob = new Sprite();
-bob.x = bobPosition.x * TILE_WIDTH;
-bob.y = bobPosition.y * TILE_HEIGHT;
-
-// spritesheet(assets.spritesheet_BAK);
-// console.log(bob)
+var bob = new Bob(level.bob.x, level.bob.y);
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame
@@ -6653,11 +6695,11 @@ exports.update = function () {
 	scrollY = clip(bob.y - 32, 0, level.height * TILE_HEIGHT - 64);
 
 	camera(scrollX, scrollY);
-	level.draw();
+	background.draw();
 	bob.draw();
 };
 
-},{}],38:[function(require,module,exports){
+},{"./Level.js":37}],39:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -6682,7 +6724,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -6775,14 +6817,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -7372,4 +7414,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":40,"_process":39,"inherits":38}]},{},[35]);
+},{"./support/isBuffer":41,"_process":40,"inherits":39}]},{},[35]);

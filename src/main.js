@@ -1,31 +1,36 @@
+var Level = require('./Level.js');
+
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
-var GRAVITY = 0.5;
+var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
 var scrollX = 0;
 var scrollY = 0;
-var level = getMap("mario");
-// level.setSpritesheet(assets.spritesheet_BAK);
+
 paper(6);
 
-var bobPosition = level.find(153)[0];
-level.remove(bobPosition.x, bobPosition.y);
+var level = new Level(getMap("geo0"));
+var background = getMap("bg0");
 
-Map.prototype.getAt = function (x, y) {
-	return this.get(~~(x / TILE_WIDTH), ~~(y / TILE_HEIGHT));
-};
+// var bobPosition = level.find(255)[0];
+// level.remove(bobPosition.x, bobPosition.y);
 
-function Sprite() {
-	this.x = 0;
-	this.y = 0;
+// Map.prototype.getAt = function (x, y) {
+// 	return this.get(~~(x / TILE_WIDTH), ~~(y / TILE_HEIGHT));
+// };
+
+function Bob(x, y) {
+	this.x  = x || 0;
+	this.y  = y || 0;
 	this.sx = 0;
 	this.sy = 0;
 
 	this.grounded = false;
+	this.jumping  = 0;
 }
 
-Sprite.prototype.update = function () {
+Bob.prototype.update = function () {
 	if (!this.grounded) {
 		this.sy += GRAVITY;
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
@@ -37,8 +42,9 @@ Sprite.prototype.update = function () {
 	// check collision
 	if (!this.grounded && this.sy > 0) {
 		var tileD = level.getAt(this.x, this.y + 8);
-		if (tileD && tileD.sprite === 0) {
+		if (tileD.isTopSolid) {
 			this.grounded = true;
+			this.jumping = 0;
 			this.sy = 0;
 			y = ~~((this.y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
 		}
@@ -48,24 +54,19 @@ Sprite.prototype.update = function () {
 	this.y = y;
 };
 
-Sprite.prototype.jump = function () {
-	// if (!this.grounded) return;
+Bob.prototype.jump = function () {
+	if (!this.grounded && this.jumping > 12) return;
+	this.jumping++;
 	this.grounded = false;
-	this.sy = -3;
+	this.sy = -3 + this.jumping * 0.08;
 }
 
-Sprite.prototype.draw = function () {
+Bob.prototype.draw = function () {
 	sprite(153, this.x, this.y);
 };
 
 
-
-var bob = new Sprite();
-bob.x = bobPosition.x * TILE_WIDTH;
-bob.y = bobPosition.y * TILE_HEIGHT;
-
-// spritesheet(assets.spritesheet_BAK);
-// console.log(bob)
+var bob = new Bob(level.bob.x, level.bob.y);
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame
@@ -83,6 +84,6 @@ exports.update = function () {
 	scrollY = clip(bob.y - 32, 0, level.height * TILE_HEIGHT - 64);
 
 	camera(scrollX, scrollY);
-	level.draw();
+	background.draw();
 	bob.draw();
 };
