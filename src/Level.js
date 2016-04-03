@@ -30,7 +30,7 @@ function Level(map) {
 	}}
 }
 
-Level.prototype.getAt = function (x, y) {
+Level.prototype.getTileAt = function (x, y) {
 	x = ~~(x / TILE_WIDTH);
 	y = ~~(y / TILE_HEIGHT);
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return EMPTY;
