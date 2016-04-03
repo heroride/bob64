@@ -15,7 +15,17 @@ function getTileFromMapItem(mapItem) {
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-function Level(map) {
+function Level() {
+	this.map    = null;
+	this.bob    = { x: 0, y: 0 };
+	this.grid   = [[]];
+	this.width  = 0;
+	this.height = 0;
+}
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.init = function (def) {
+	var map = getMap(def.geometry);
 	var bobPosition = map.find(255)[0];
 
 	this.map    = map;
@@ -28,8 +38,9 @@ function Level(map) {
 	for (var y = 0; y < map.height; y++) {
 		this.grid[x][y] = getTileFromMapItem(map.items[x][y]);
 	}}
-}
+};
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype.getTileAt = function (x, y) {
 	x = ~~(x / TILE_WIDTH);
 	y = ~~(y / TILE_HEIGHT);
@@ -37,4 +48,4 @@ Level.prototype.getTileAt = function (x, y) {
 	return this.grid[x][y];
 };
 
-module.exports = Level;
+module.exports = new Level();

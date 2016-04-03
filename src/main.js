@@ -1,5 +1,5 @@
-var Level = require('./Level.js');
-var Bob   = require('./Bob.js');
+var level = require('./Level.js');
+var bob   = require('./Bob.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -11,11 +11,18 @@ var scrollY = 0;
 
 paper(6);
 
-var level = new Level(getMap("geo0"));
-var background = getMap("bg0");
 
+var background = new Map();
 
-var bob = new Bob(level);
+function loadLevel(id) {
+	var def = assets.levels[id];
+	level.init(def);
+	bob.setPosition(level.bob); // TODO
+	background = getMap(def.background);
+}
+
+loadLevel("level0");
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame

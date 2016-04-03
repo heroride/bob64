@@ -6568,17 +6568,18 @@ module.exports={
 	}
 }
 },{}],37:[function(require,module,exports){
+var level = require('./Level.js');
+
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 3;
 var ANIM_SPEED  = 0.3;
 
-function Bob(level) {
-	this.level = level;
-
-	this.x  = level.bob.x || 0;
-	this.y  = level.bob.y || 0;
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+function Bob() {
+	this.x  = 0;
+	this.y  = 0;
 	this.sx = 0;
 	this.sy = 0;
 
@@ -6590,11 +6591,17 @@ function Bob(level) {
 	this.jumping  = 0;
 }
 
-module.exports = Bob;
+module.exports = new Bob();
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.setPosition = function (doorId) {
+	// TODO
+	this.x = level.bob.x || 0;
+	this.y = level.bob.y || 0;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.update = function () {
-	var level = this.level;
-
 	if (!this.grounded) {
 		this.sy += GRAVITY;
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
@@ -6634,23 +6641,30 @@ Bob.prototype.update = function () {
 			this.sy = 0;
 			y = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
-			// TODO
-			this.grounded = true;
-			this.jumping = 0;
-			this.sy = 0;
-			y = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
+			var targetY = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
+			if (this.y <= targetY) {
+				this.grounded = true;
+				this.jumping = 0;
+				this.sy = 0;
+				y = targetY;
+			}
 		}
 	} else if (this.sy < 0) {
-		// air up
-
-		// TODO
-
+		// air up (ceiling)
+		var tileUL = level.getTileAt(x + 1, y);
+		var tileUR = level.getTileAt(x + 7, y);
+		if (tileUL.isSolid || tileUR.isSolid) {
+			this.sy = 0;
+			this.jumping = 99;
+			y = ~~((y) / TILE_HEIGHT) * TILE_HEIGHT + 8;
+		}
 	}
 
 	this.x = x;
 	this.y = y;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.jump = function () {
 	if (!this.grounded && this.jumping > 12) return;
 	this.jumping++;
@@ -6658,18 +6672,21 @@ Bob.prototype.jump = function () {
 	this.sy = -3 + this.jumping * 0.08;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.goLeft = function () {
 	this.sx = -1;
 	this.flipH = true;
 	this.frame += ANIM_SPEED;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.goRight = function () {
 	this.sx = 1;
 	this.flipH = false;
 	this.frame += ANIM_SPEED;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.draw = function () {
 	var s = 255;
 	if (this.sx > 0.4 || this.sx < -0.4) {
@@ -6678,7 +6695,7 @@ Bob.prototype.draw = function () {
 	}
 	sprite(s, this.x, this.y, this.flipH);
 };
-},{}],38:[function(require,module,exports){
+},{"./Level.js":38}],38:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 
@@ -6696,7 +6713,17 @@ function getTileFromMapItem(mapItem) {
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-function Level(map) {
+function Level() {
+	this.map    = null;
+	this.bob    = { x: 0, y: 0 };
+	this.grid   = [[]];
+	this.width  = 0;
+	this.height = 0;
+}
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.init = function (def) {
+	var map = getMap(def.geometry);
 	var bobPosition = map.find(255)[0];
 
 	this.map    = map;
@@ -6709,8 +6736,9 @@ function Level(map) {
 	for (var y = 0; y < map.height; y++) {
 		this.grid[x][y] = getTileFromMapItem(map.items[x][y]);
 	}}
-}
+};
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype.getTileAt = function (x, y) {
 	x = ~~(x / TILE_WIDTH);
 	y = ~~(y / TILE_HEIGHT);
@@ -6718,10 +6746,10 @@ Level.prototype.getTileAt = function (x, y) {
 	return this.grid[x][y];
 };
 
-module.exports = Level;
+module.exports = new Level();
 },{}],39:[function(require,module,exports){
-var Level = require('./Level.js');
-var Bob   = require('./Bob.js');
+var level = require('./Level.js');
+var bob   = require('./Bob.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -6733,11 +6761,18 @@ var scrollY = 0;
 
 paper(6);
 
-var level = new Level(getMap("geo0"));
-var background = getMap("bg0");
 
+var background = new Map();
 
-var bob = new Bob(level);
+function loadLevel(id) {
+	var def = assets.levels[id];
+	level.init(def);
+	bob.setPosition(level.bob); // TODO
+	background = getMap(def.background);
+}
+
+loadLevel("level0");
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame

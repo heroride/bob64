@@ -1,14 +1,15 @@
+var level = require('./Level.js');
+
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 3;
 var ANIM_SPEED  = 0.3;
 
-function Bob(level) {
-	this.level = level;
-
-	this.x  = level.bob.x || 0;
-	this.y  = level.bob.y || 0;
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+function Bob() {
+	this.x  = 0;
+	this.y  = 0;
 	this.sx = 0;
 	this.sy = 0;
 
@@ -20,11 +21,17 @@ function Bob(level) {
 	this.jumping  = 0;
 }
 
-module.exports = Bob;
+module.exports = new Bob();
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.setPosition = function (doorId) {
+	// TODO
+	this.x = level.bob.x || 0;
+	this.y = level.bob.y || 0;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.update = function () {
-	var level = this.level;
-
 	if (!this.grounded) {
 		this.sy += GRAVITY;
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
@@ -64,23 +71,30 @@ Bob.prototype.update = function () {
 			this.sy = 0;
 			y = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
-			// TODO
-			this.grounded = true;
-			this.jumping = 0;
-			this.sy = 0;
-			y = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
+			var targetY = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
+			if (this.y <= targetY) {
+				this.grounded = true;
+				this.jumping = 0;
+				this.sy = 0;
+				y = targetY;
+			}
 		}
 	} else if (this.sy < 0) {
-		// air up
-
-		// TODO
-
+		// air up (ceiling)
+		var tileUL = level.getTileAt(x + 1, y);
+		var tileUR = level.getTileAt(x + 7, y);
+		if (tileUL.isSolid || tileUR.isSolid) {
+			this.sy = 0;
+			this.jumping = 99;
+			y = ~~((y) / TILE_HEIGHT) * TILE_HEIGHT + 8;
+		}
 	}
 
 	this.x = x;
 	this.y = y;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.jump = function () {
 	if (!this.grounded && this.jumping > 12) return;
 	this.jumping++;
@@ -88,18 +102,21 @@ Bob.prototype.jump = function () {
 	this.sy = -3 + this.jumping * 0.08;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.goLeft = function () {
 	this.sx = -1;
 	this.flipH = true;
 	this.frame += ANIM_SPEED;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.goRight = function () {
 	this.sx = 1;
 	this.flipH = false;
 	this.frame += ANIM_SPEED;
 };
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.draw = function () {
 	var s = 255;
 	if (this.sx > 0.4 || this.sx < -0.4) {
