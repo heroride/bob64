@@ -126,7 +126,7 @@ Bob.prototype.action = function () {
 	var tile = level.getTileAt(this.x + 4, this.y + 4);
 	if (tile.isDoor) {
 		var door = level.doors[tile.doorId];
-		this.controller.loadLevel(door.level, door.doorId);
+		this.controller.changeLevel(door.level, door.doorId);
 	}
 };
 
