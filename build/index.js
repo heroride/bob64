@@ -5393,7 +5393,7 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":43}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":44}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
 
@@ -5776,7 +5776,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":43}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":44}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -6532,7 +6532,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":39,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":40,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -6596,8 +6596,8 @@ module.exports = new Bob();
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.setPosition = function (doorId) {
 	// TODO
-	this.x = level.bob.x || 0;
-	this.y = level.bob.y || 0;
+	this.x = level.bobPos.x || 0;
+	this.y = level.bobPos.y || 0;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6614,6 +6614,11 @@ Bob.prototype.update = function () {
 	var x = this.x + this.sx;
 	var y = this.y + this.sy;
 
+	// avoid going out of the level
+	var maxX = level.width * TILE_WIDTH - 2;
+	if (x < -7) x = -7;
+	if (x > maxX) x = maxX;
+
 	var front       = 8;
 	var frontOffset = 0;
 	if (this.sx < 0) { front = 0; frontOffset = 8; }
@@ -6629,19 +6634,19 @@ Bob.prototype.update = function () {
 	if (this.grounded) {
 		// down
 		var tileDL = level.getTileAt(x + 1, y + 9);
-		var tileDR = level.getTileAt(x + 7, y + 9);
+		var tileDR = level.getTileAt(x + 6, y + 9);
 		if (tileDL.isEmpty && tileDR.isEmpty) this.grounded = false;
 	} else if (this.sy > 0) {
 		// air down
 		var tileDL = level.getTileAt(x + 1, y + 8);
-		var tileDR = level.getTileAt(x + 7, y + 8);
+		var tileDR = level.getTileAt(x + 6, y + 8);
 		if (tileDL.isSolid || tileDR.isSolid) {
 			this.grounded = true;
 			this.jumping = 0;
 			this.sy = 0;
-			y = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
+			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
-			var targetY = ~~((y + 8) / TILE_HEIGHT) * TILE_HEIGHT - 8;
+			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 			if (this.y <= targetY) {
 				this.grounded = true;
 				this.jumping = 0;
@@ -6652,11 +6657,11 @@ Bob.prototype.update = function () {
 	} else if (this.sy < 0) {
 		// air up (ceiling)
 		var tileUL = level.getTileAt(x + 1, y);
-		var tileUR = level.getTileAt(x + 7, y);
+		var tileUR = level.getTileAt(x + 6, y);
 		if (tileUL.isSolid || tileUR.isSolid) {
 			this.sy = 0;
 			this.jumping = 99;
-			y = ~~((y) / TILE_HEIGHT) * TILE_HEIGHT + 8;
+			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
 		}
 	}
 
@@ -6687,6 +6692,15 @@ Bob.prototype.goRight = function () {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.action = function () {
+	var tile = level.getTileAt(this.x + 4, this.y + 4);
+	if (tile.isDoor) {
+		var door = level.doors[tile.doorId];
+		this.controller.loadLevel(door.level, door.doorId);
+	}
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.draw = function () {
 	var s = 255;
 	if (this.sx > 0.4 || this.sx < -0.4) {
@@ -6695,19 +6709,77 @@ Bob.prototype.draw = function () {
 	}
 	sprite(s, this.x, this.y, this.flipH);
 };
-},{"./Level.js":38}],38:[function(require,module,exports){
+},{"./Level.js":39}],38:[function(require,module,exports){
+var level = require('./Level.js');
+var bob   = require('./Bob.js');
+var background = new Map();
+
+var TILE_WIDTH  = settings.spriteSize[0];
+var TILE_HEIGHT = settings.spriteSize[1];
+var GRAVITY     = 0.5;
+var MAX_GRAVITY = 2;
+
+var scrollX = 0;
+var scrollY = 0;
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+function GameController() {
+	this.level = level;
+	this.bob   = bob;
+
+	level.controller = this;
+	bob.controller   = this;
+}
+
+module.exports = new GameController();
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.loadLevel = function (id, doorId) {
+	var def = assets.levels[id];
+	level.init(def);
+	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
+	bob.setPosition(level.bobPos); // TODO
+	background = getMap(def.background);
+	paper(def.bgcolor);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.update = function () {
+	cls();
+	bob.sx *= 0.8;
+	if (btn.up)    bob.jump();
+	// if (btn.down)  bob.sy = 1;
+	if (btn.right) bob.goRight();
+	if (btn.left)  bob.goLeft();
+	if (btnp.A)    bob.action();
+	bob.update();
+
+	scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
+	scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
+
+	camera(scrollX, scrollY);
+	background.draw();
+	bob.draw();
+};
+},{"./Bob.js":37,"./Level.js":39}],39:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 
 var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false };
 var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true  };
 var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true  };
+var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 0 };
+var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 1 };
+var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 2 };
 
 function getTileFromMapItem(mapItem) {
 	if (!mapItem) return EMPTY;
 	switch (mapItem.sprite) {
 		case 0: return SOLID;
 		case 1: return ONE_WAY;
+		case 4: return DOOR_0;
+		case 5: return DOOR_1;
+		case 6: return DOOR_2;
 		default: return EMPTY;
 	}
 }
@@ -6715,10 +6787,11 @@ function getTileFromMapItem(mapItem) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Level() {
 	this.map    = null;
-	this.bob    = { x: 0, y: 0 };
+	this.bobPos = { x: 0, y: 0 };
 	this.grid   = [[]];
 	this.width  = 0;
 	this.height = 0;
+	this.doors  = [null, null, null];
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6726,16 +6799,48 @@ Level.prototype.init = function (def) {
 	var map = getMap(def.geometry);
 	var bobPosition = map.find(255)[0];
 
+	if (bobPosition) {
+		this.bobPos.x = bobPosition.x * TILE_WIDTH;
+		this.bobPos.y = bobPosition.y * TILE_HEIGHT;
+	}
+
 	this.map    = map;
-	this.bob    = { x: bobPosition.x * TILE_WIDTH, y: bobPosition.y * TILE_HEIGHT };
 	this.grid   = map.copy().items;
 	this.width  = map.width;
 	this.height = map.height;
+
+	this._initDoors(map, def.doors);
 
 	for (var x = 0; x < map.width;  x++) {
 	for (var y = 0; y < map.height; y++) {
 		this.grid[x][y] = getTileFromMapItem(map.items[x][y]);
 	}}
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype._initDoors = function (map, doors) {
+	for (var i = 0; i < this.doors.length; i++) {
+		var position = map.find(4 + i)[0];
+		var door = doors[i] || '';
+		door = door.split(':');
+		var destinationLevel = door[0];
+		var doorId = door[1];
+
+		this.doors[i] = {
+			position: position,
+			level:    destinationLevel,
+			doorId:   doorId
+		};
+	}
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.setBobPositionOnDoor = function (doorId) {
+	var door = this.doors[doorId];
+	if (!door || !door.position) return console.error('level does not contain door id', doorId);
+
+	this.bobPos.x = door.position.x * TILE_WIDTH;
+	this.bobPos.y = door.position.y * TILE_HEIGHT;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6747,54 +6852,18 @@ Level.prototype.getTileAt = function (x, y) {
 };
 
 module.exports = new Level();
-},{}],39:[function(require,module,exports){
-var level = require('./Level.js');
-var bob   = require('./Bob.js');
+},{}],40:[function(require,module,exports){
+var gameController = require('./GameController.js');
 
-var TILE_WIDTH  = settings.spriteSize[0];
-var TILE_HEIGHT = settings.spriteSize[1];
-var GRAVITY     = 0.5;
-var MAX_GRAVITY = 2;
-
-var scrollX = 0;
-var scrollY = 0;
-
-paper(6);
-
-
-var background = new Map();
-
-function loadLevel(id) {
-	var def = assets.levels[id];
-	level.init(def);
-	bob.setPosition(level.bob); // TODO
-	background = getMap(def.background);
-}
-
-loadLevel("level0");
-
+gameController.loadLevel("level0");
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame
 exports.update = function () {
-	cls();
-	bob.sx *= 0.8;
-	// bob.sy *= 0.8;
-	if (btn.up)    bob.jump();
-	// if (btn.down)  bob.sy = 1;
-	if (btn.right) bob.goRight();
-	if (btn.left)  bob.goLeft();
-	bob.update();
-
-	scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
-	scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
-
-	camera(scrollX, scrollY);
-	background.draw();
-	bob.draw();
+	gameController.update();
 };
 
-},{"./Bob.js":37,"./Level.js":38}],40:[function(require,module,exports){
+},{"./GameController.js":38}],41:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -6819,7 +6888,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -6912,14 +6981,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],42:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],43:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -7509,4 +7578,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":42,"_process":41,"inherits":40}]},{},[35]);
+},{"./support/isBuffer":43,"_process":42,"inherits":41}]},{},[35]);
