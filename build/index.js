@@ -6696,7 +6696,7 @@ Bob.prototype.action = function () {
 	var tile = level.getTileAt(this.x + 4, this.y + 4);
 	if (tile.isDoor) {
 		var door = level.doors[tile.doorId];
-		this.controller.loadLevel(door.level, door.doorId);
+		this.controller.changeLevel(door.level, door.doorId);
 	}
 };
 
@@ -6744,7 +6744,25 @@ GameController.prototype.loadLevel = function (id, doorId) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+var nextLevel, nextDoor, inTransition, transitionCount;
+GameController.prototype.changeLevel = function (id, doorId) {
+	inTransition = true;
+	transitionCount = -30;
+	nextLevel = id;
+	nextDoor  = doorId;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.update = function () {
+	if (inTransition) {
+		camera(0, 0);
+		draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
+		if (++transitionCount > 0) {
+			this.loadLevel(nextLevel, nextDoor);
+			inTransition = false;
+		}
+		return;
+	}
 	cls();
 	bob.sx *= 0.8;
 	if (btn.up)    bob.jump();
