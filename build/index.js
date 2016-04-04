@@ -6616,8 +6616,8 @@ Bob.prototype.update = function () {
 
 	// avoid going out of the level
 	var maxX = level.width * TILE_WIDTH - 2;
-	if (x < -7) x = -7;
-	if (x > maxX) x = maxX;
+	if (x < -7)   { x = -7;   if (this.controller.goToSideLevel('left'))  return; }
+	if (x > maxX) { x = maxX; if (this.controller.goToSideLevel('right')) return; }
 
 	var front       = 8;
 	var frontOffset = 0;
@@ -6642,14 +6642,14 @@ Bob.prototype.update = function () {
 		var tileDR = level.getTileAt(x + 6, y + 8);
 		if (tileDL.isSolid || tileDR.isSolid) {
 			this.grounded = true;
-			this.jumping = 0;
+			this.jumping = false;
 			this.sy = 0;
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
 			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 			if (this.y <= targetY) {
 				this.grounded = true;
-				this.jumping = 0;
+				this.jumping = false;
 				this.sy = 0;
 				y = targetY;
 			}
@@ -6660,7 +6660,8 @@ Bob.prototype.update = function () {
 		var tileUR = level.getTileAt(x + 6, y);
 		if (tileUL.isSolid || tileUR.isSolid) {
 			this.sy = 0;
-			this.jumping = 99;
+			// this.jumpCounter = 99;
+			this.jumpCounter += 2;
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
 		}
 	}
@@ -6670,11 +6671,21 @@ Bob.prototype.update = function () {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.jump = function () {
-	if (!this.grounded && this.jumping > 12) return;
-	this.jumping++;
+Bob.prototype.startJump = function () {
+	if (!this.grounded) return;
+	// TODO: ceiling test
+	this.jumping = true;
+	this.jumpCounter = 0;
 	this.grounded = false;
-	this.sy = -3 + this.jumping * 0.08;
+};
+Bob.prototype.endJump = function () {
+	this.jumping = false;
+};
+
+Bob.prototype.jump = function () {
+	if (!this.jumping) return;
+	if (this.jumpCounter++ > 12) this.jumping = false;
+	this.sy = -3 + this.jumpCounter * 0.08;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6705,7 +6716,7 @@ Bob.prototype.draw = function () {
 	var s = 255;
 	if (this.sx > 0.4 || this.sx < -0.4) {
 		if (this.frame >= 3) this.frame = 0;
-		s = 154 + ~~this.frame;
+		s = 252 + ~~this.frame;
 	}
 	sprite(s, this.x, this.y, this.flipH);
 };
@@ -6719,9 +6730,6 @@ var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
-var scrollX = 0;
-var scrollY = 0;
-
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
 	this.level = level;
@@ -6734,22 +6742,35 @@ function GameController() {
 module.exports = new GameController();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.loadLevel = function (id, doorId) {
+GameController.prototype.loadLevel = function (id, doorId, side) {
 	var def = assets.levels[id];
 	level.init(def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
+	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos); // TODO
 	background = getMap(def.background);
 	paper(def.bgcolor);
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-var nextLevel, nextDoor, inTransition, transitionCount;
+var nextLevel, nextDoor, inTransition, transitionCount, nextSide;
 GameController.prototype.changeLevel = function (id, doorId) {
 	inTransition = true;
 	transitionCount = -30;
 	nextLevel = id;
 	nextDoor  = doorId;
+	nextSide  = undefined;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.goToSideLevel = function (direction) {
+	if (!level[direction]) return false;
+	inTransition = true;
+	transitionCount = -30;
+	nextLevel = level[direction];
+	nextDoor  = undefined;
+	nextSide  = direction;
+	return true;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6758,22 +6779,24 @@ GameController.prototype.update = function () {
 		camera(0, 0);
 		draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
 		if (++transitionCount > 0) {
-			this.loadLevel(nextLevel, nextDoor);
+			this.loadLevel(nextLevel, nextDoor, nextSide);
 			inTransition = false;
 		}
 		return;
 	}
 	cls();
 	bob.sx *= 0.8;
+	if (btnp.up)   bob.startJump();
+	if (btnr.up)   bob.endJump();
 	if (btn.up)    bob.jump();
-	// if (btn.down)  bob.sy = 1;
+	// if (btn.down)  TODO going down from one way platforms
 	if (btn.right) bob.goRight();
 	if (btn.left)  bob.goLeft();
 	if (btnp.A)    bob.action();
 	bob.update();
 
-	scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
-	scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
+	var scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
+	var scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
 
 	camera(scrollX, scrollY);
 	background.draw();
@@ -6785,7 +6808,7 @@ var TILE_HEIGHT = settings.spriteSize[1];
 
 var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false };
 var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true  };
-var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true  };
+var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  canJumpThru: true };
 var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 0 };
 var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 1 };
 var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 2 };
@@ -6826,6 +6849,8 @@ Level.prototype.init = function (def) {
 	this.grid   = map.copy().items;
 	this.width  = map.width;
 	this.height = map.height;
+	this.right  = def.right;
+	this.left   = def.left;
 
 	this._initDoors(map, def.doors);
 
@@ -6862,6 +6887,12 @@ Level.prototype.setBobPositionOnDoor = function (doorId) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.setBobPositionOnSide = function (bob, direction) {
+	this.bobPos.y = bob.y;
+	this.bobPos.x = direction === 'right' ? -7 : this.width * TILE_WIDTH - 2;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype.getTileAt = function (x, y) {
 	x = ~~(x / TILE_WIDTH);
 	y = ~~(y / TILE_HEIGHT);
@@ -6873,7 +6904,7 @@ module.exports = new Level();
 },{}],40:[function(require,module,exports){
 var gameController = require('./GameController.js');
 
-gameController.loadLevel("level0");
+gameController.loadLevel("start");
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame

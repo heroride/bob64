@@ -7,9 +7,6 @@ var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
-var scrollX = 0;
-var scrollY = 0;
-
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
 	this.level = level;
@@ -22,22 +19,35 @@ function GameController() {
 module.exports = new GameController();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.loadLevel = function (id, doorId) {
+GameController.prototype.loadLevel = function (id, doorId, side) {
 	var def = assets.levels[id];
 	level.init(def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
+	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos); // TODO
 	background = getMap(def.background);
 	paper(def.bgcolor);
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-var nextLevel, nextDoor, inTransition, transitionCount;
+var nextLevel, nextDoor, inTransition, transitionCount, nextSide;
 GameController.prototype.changeLevel = function (id, doorId) {
 	inTransition = true;
 	transitionCount = -30;
 	nextLevel = id;
 	nextDoor  = doorId;
+	nextSide  = undefined;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.goToSideLevel = function (direction) {
+	if (!level[direction]) return false;
+	inTransition = true;
+	transitionCount = -30;
+	nextLevel = level[direction];
+	nextDoor  = undefined;
+	nextSide  = direction;
+	return true;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -46,22 +56,24 @@ GameController.prototype.update = function () {
 		camera(0, 0);
 		draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
 		if (++transitionCount > 0) {
-			this.loadLevel(nextLevel, nextDoor);
+			this.loadLevel(nextLevel, nextDoor, nextSide);
 			inTransition = false;
 		}
 		return;
 	}
 	cls();
 	bob.sx *= 0.8;
+	if (btnp.up)   bob.startJump();
+	if (btnr.up)   bob.endJump();
 	if (btn.up)    bob.jump();
-	// if (btn.down)  bob.sy = 1;
+	// if (btn.down)  TODO going down from one way platforms
 	if (btn.right) bob.goRight();
 	if (btn.left)  bob.goLeft();
 	if (btnp.A)    bob.action();
 	bob.update();
 
-	scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
-	scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
+	var scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
+	var scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
 
 	camera(scrollX, scrollY);
 	background.draw();

@@ -1,4 +1,6 @@
 {
-	"level0": { "name": "", "geometry": "geo0", "background": "bg0", "bgcolor": 6, "doors": ["level1:0", "level1:1", ""] },
-	"level1": { "name": "", "geometry": "geo1", "background": "bg1", "bgcolor": 0, "doors": ["level0:0", "level0:1", ""] }
+	"start": { "name": "", "background": "ground0", "geometry": "ground0_geo", "bgcolor": 6, "doors": ["cave:0",  "cave:1",  ""], "left": "grndF", "right": "grnd1"},
+	"grnd1": { "name": "", "background": "ground1", "geometry": "ground1_geo", "bgcolor": 6, "doors": ["",        "",        ""], "left": "start", "right": "grndF"},
+	"grndF": { "name": "", "background": "groundF", "geometry": "groundF_geo", "bgcolor": 6, "doors": ["",        "",        ""], "left": "grnd1", "right": "start"},
+	"cave":  { "name": "", "background": "cave",    "geometry": "cave_geo",    "bgcolor": 0, "doors": ["start:0", "start:1", ""] }
 }
