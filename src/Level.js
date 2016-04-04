@@ -3,7 +3,7 @@ var TILE_HEIGHT = settings.spriteSize[1];
 
 var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false };
 var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true  };
-var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true  };
+var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  canJumpThru: true };
 var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 0 };
 var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 1 };
 var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 2 };
@@ -44,6 +44,8 @@ Level.prototype.init = function (def) {
 	this.grid   = map.copy().items;
 	this.width  = map.width;
 	this.height = map.height;
+	this.right  = def.right;
+	this.left   = def.left;
 
 	this._initDoors(map, def.doors);
 
@@ -77,6 +79,12 @@ Level.prototype.setBobPositionOnDoor = function (doorId) {
 
 	this.bobPos.x = door.position.x * TILE_WIDTH;
 	this.bobPos.y = door.position.y * TILE_HEIGHT;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.setBobPositionOnSide = function (bob, direction) {
+	this.bobPos.y = bob.y;
+	this.bobPos.x = direction === 'right' ? -7 : this.width * TILE_WIDTH - 2;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄

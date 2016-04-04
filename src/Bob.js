@@ -46,8 +46,8 @@ Bob.prototype.update = function () {
 
 	// avoid going out of the level
 	var maxX = level.width * TILE_WIDTH - 2;
-	if (x < -7) x = -7;
-	if (x > maxX) x = maxX;
+	if (x < -7)   { x = -7;   if (this.controller.goToSideLevel('left'))  return; }
+	if (x > maxX) { x = maxX; if (this.controller.goToSideLevel('right')) return; }
 
 	var front       = 8;
 	var frontOffset = 0;

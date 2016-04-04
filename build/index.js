@@ -6616,8 +6616,8 @@ Bob.prototype.update = function () {
 
 	// avoid going out of the level
 	var maxX = level.width * TILE_WIDTH - 2;
-	if (x < -7) x = -7;
-	if (x > maxX) x = maxX;
+	if (x < -7)   { x = -7;   if (this.controller.goToSideLevel('left'))  return; }
+	if (x > maxX) { x = maxX; if (this.controller.goToSideLevel('right')) return; }
 
 	var front       = 8;
 	var frontOffset = 0;
@@ -6730,9 +6730,6 @@ var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
-var scrollX = 0;
-var scrollY = 0;
-
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
 	this.level = level;
@@ -6745,22 +6742,35 @@ function GameController() {
 module.exports = new GameController();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.loadLevel = function (id, doorId) {
+GameController.prototype.loadLevel = function (id, doorId, side) {
 	var def = assets.levels[id];
 	level.init(def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
+	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos); // TODO
 	background = getMap(def.background);
 	paper(def.bgcolor);
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-var nextLevel, nextDoor, inTransition, transitionCount;
+var nextLevel, nextDoor, inTransition, transitionCount, nextSide;
 GameController.prototype.changeLevel = function (id, doorId) {
 	inTransition = true;
 	transitionCount = -30;
 	nextLevel = id;
 	nextDoor  = doorId;
+	nextSide  = undefined;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.goToSideLevel = function (direction) {
+	if (!level[direction]) return false;
+	inTransition = true;
+	transitionCount = -30;
+	nextLevel = level[direction];
+	nextDoor  = undefined;
+	nextSide  = direction;
+	return true;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6769,7 +6779,7 @@ GameController.prototype.update = function () {
 		camera(0, 0);
 		draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
 		if (++transitionCount > 0) {
-			this.loadLevel(nextLevel, nextDoor);
+			this.loadLevel(nextLevel, nextDoor, nextSide);
 			inTransition = false;
 		}
 		return;
@@ -6779,14 +6789,14 @@ GameController.prototype.update = function () {
 	if (btnp.up)   bob.startJump();
 	if (btnr.up)   bob.endJump();
 	if (btn.up)    bob.jump();
-	// if (btn.down)  bob.sy = 1;
+	// if (btn.down)  TODO going down from one way platforms
 	if (btn.right) bob.goRight();
 	if (btn.left)  bob.goLeft();
 	if (btnp.A)    bob.action();
 	bob.update();
 
-	scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
-	scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
+	var scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
+	var scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
 
 	camera(scrollX, scrollY);
 	background.draw();
@@ -6798,7 +6808,7 @@ var TILE_HEIGHT = settings.spriteSize[1];
 
 var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false };
 var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true  };
-var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true  };
+var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  canJumpThru: true };
 var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 0 };
 var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 1 };
 var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 2 };
@@ -6839,6 +6849,8 @@ Level.prototype.init = function (def) {
 	this.grid   = map.copy().items;
 	this.width  = map.width;
 	this.height = map.height;
+	this.right  = def.right;
+	this.left   = def.left;
 
 	this._initDoors(map, def.doors);
 
@@ -6872,6 +6884,12 @@ Level.prototype.setBobPositionOnDoor = function (doorId) {
 
 	this.bobPos.x = door.position.x * TILE_WIDTH;
 	this.bobPos.y = door.position.y * TILE_HEIGHT;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.setBobPositionOnSide = function (bob, direction) {
+	this.bobPos.y = bob.y;
+	this.bobPos.x = direction === 'right' ? -7 : this.width * TILE_WIDTH - 2;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
