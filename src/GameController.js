@@ -53,6 +53,8 @@ GameController.prototype.update = function () {
 	}
 	cls();
 	bob.sx *= 0.8;
+	if (btnp.up)   bob.startJump();
+	if (btnr.up)   bob.endJump();
 	if (btn.up)    bob.jump();
 	// if (btn.down)  bob.sy = 1;
 	if (btn.right) bob.goRight();

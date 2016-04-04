@@ -6642,14 +6642,14 @@ Bob.prototype.update = function () {
 		var tileDR = level.getTileAt(x + 6, y + 8);
 		if (tileDL.isSolid || tileDR.isSolid) {
 			this.grounded = true;
-			this.jumping = 0;
+			this.jumping = false;
 			this.sy = 0;
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
 			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 			if (this.y <= targetY) {
 				this.grounded = true;
-				this.jumping = 0;
+				this.jumping = false;
 				this.sy = 0;
 				y = targetY;
 			}
@@ -6660,7 +6660,8 @@ Bob.prototype.update = function () {
 		var tileUR = level.getTileAt(x + 6, y);
 		if (tileUL.isSolid || tileUR.isSolid) {
 			this.sy = 0;
-			this.jumping = 99;
+			// this.jumpCounter = 99;
+			this.jumpCounter += 2;
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
 		}
 	}
@@ -6670,11 +6671,21 @@ Bob.prototype.update = function () {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.jump = function () {
-	if (!this.grounded && this.jumping > 12) return;
-	this.jumping++;
+Bob.prototype.startJump = function () {
+	if (!this.grounded) return;
+	// TODO: ceiling test
+	this.jumping = true;
+	this.jumpCounter = 0;
 	this.grounded = false;
-	this.sy = -3 + this.jumping * 0.08;
+};
+Bob.prototype.endJump = function () {
+	this.jumping = false;
+};
+
+Bob.prototype.jump = function () {
+	if (!this.jumping) return;
+	if (this.jumpCounter++ > 12) this.jumping = false;
+	this.sy = -3 + this.jumpCounter * 0.08;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6705,7 +6716,7 @@ Bob.prototype.draw = function () {
 	var s = 255;
 	if (this.sx > 0.4 || this.sx < -0.4) {
 		if (this.frame >= 3) this.frame = 0;
-		s = 154 + ~~this.frame;
+		s = 252 + ~~this.frame;
 	}
 	sprite(s, this.x, this.y, this.flipH);
 };
@@ -6765,6 +6776,8 @@ GameController.prototype.update = function () {
 	}
 	cls();
 	bob.sx *= 0.8;
+	if (btnp.up)   bob.startJump();
+	if (btnr.up)   bob.endJump();
 	if (btn.up)    bob.jump();
 	// if (btn.down)  bob.sy = 1;
 	if (btn.right) bob.goRight();
@@ -6873,7 +6886,7 @@ module.exports = new Level();
 },{}],40:[function(require,module,exports){
 var gameController = require('./GameController.js');
 
-gameController.loadLevel("level0");
+gameController.loadLevel("start");
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame
