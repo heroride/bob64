@@ -1,12 +1,14 @@
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 
-var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false };
-var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true  };
-var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  canJumpThru: true };
-var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 0 };
-var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 1 };
-var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isDoor: true, doorId: 2 };
+var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0 };
+var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true,  isWater: 0 };
+var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, canJumpThru: true };
+var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 0 };
+var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 1 };
+var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 2 };
+var WATER   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 1 };
+var WATER_S = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 2 };
 
 function getTileFromMapItem(mapItem) {
 	if (!mapItem) return EMPTY;
@@ -16,6 +18,8 @@ function getTileFromMapItem(mapItem) {
 		case 4: return DOOR_0;
 		case 5: return DOOR_1;
 		case 6: return DOOR_2;
+		case 7: return WATER;
+		case 8: return WATER_S;
 		default: return EMPTY;
 	}
 }

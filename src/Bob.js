@@ -4,6 +4,8 @@ var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 3;
+var WATER_FORCE = -0.3;
+var MAX_WATER   = -1.5;
 var ANIM_SPEED  = 0.3;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -17,8 +19,11 @@ function Bob() {
 	this.frame = 0;
 	this.flipH = false;
 
+	// state
 	this.grounded = false;
-	this.jumping  = 0;
+	this.inWater  = 0;
+	this.jumping  = false;
+	this.jumpCounter = 0;
 }
 
 module.exports = new Bob();
@@ -32,7 +37,14 @@ Bob.prototype.setPosition = function (doorId) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.update = function () {
-	if (!this.grounded) {
+	if (this.inWater === 1) {
+		this.sy += WATER_FORCE;
+		this.sy = Math.max(this.sy, MAX_WATER);
+	} else if (this.inWater === 2) {
+		this.sy -= 0.1;
+		this.sy = Math.max(this.sy, MAX_WATER);
+		this.sy *= 0.9;
+	} else if (!this.grounded) {
 		this.sy += GRAVITY;
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
 	}
@@ -102,7 +114,7 @@ Bob.prototype.update = function () {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.startJump = function () {
-	if (!this.grounded) return;
+	if (!this.grounded && !this.inWater) return;
 	// TODO: ceiling test
 	this.jumping = true;
 	this.jumpCounter = 0;
@@ -133,8 +145,13 @@ Bob.prototype.goRight = function () {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.action = function () {
-	var tile = level.getTileAt(this.x + 4, this.y + 4);
+Bob.prototype.goDown = function () {
+	if (!this.inWater || this.grounded) return;
+	this.sy = Math.min(2, this.sy + 0.5);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.action = function (tile) {
 	if (tile.isDoor) {
 		var door = level.doors[tile.doorId];
 		this.controller.changeLevel(door.level, door.doorId);
