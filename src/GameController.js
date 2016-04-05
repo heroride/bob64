@@ -51,30 +51,27 @@ GameController.prototype.goToSideLevel = function (direction) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.update = function () {
-	if (inTransition) {
-		camera(0, 0);
-		draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
-		if (++transitionCount > 0) {
-			this.loadLevel(nextLevel, nextDoor, nextSide);
-			inTransition = false;
-		}
-		return;
+GameController.prototype.ditherTransition = function () {
+	camera(0, 0);
+	draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
+	if (++transitionCount > 0) {
+		this.loadLevel(nextLevel, nextDoor, nextSide);
+		inTransition = false;
 	}
-	cls();
-	bob.sx *= 0.8;
-	if (btnp.up)   bob.startJump();
-	if (btnr.up)   bob.endJump();
-	if (btn.up)    bob.jump();
-	// if (btn.down)  TODO going down from one way platforms
-	if (btn.right) bob.goRight();
-	if (btn.left)  bob.goLeft();
-	if (btnp.A)    bob.action();
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.update = function () {
+	if (inTransition) return this.ditherTransition();
+
+	
+
 	bob.update();
 
 	var scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
 	var scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
 
+	cls();
 	camera(scrollX, scrollY);
 	background.draw();
 	bob.draw();
