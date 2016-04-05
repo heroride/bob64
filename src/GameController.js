@@ -64,22 +64,7 @@ GameController.prototype.ditherTransition = function () {
 GameController.prototype.update = function () {
 	if (inTransition) return this.ditherTransition();
 
-	bob.sx *= 0.8;
-
-	if (btnp.up) bob.startJump();
-	if (btnr.up) bob.endJump();
-	if (btn.up)  bob.jump();
-
-	if (btn.down) bob.goDown();
-
-	// if (btn.down)  TODO going down from one way platforms
-	if ( btn.right && !btn.left) bob.goRight();
-	if (!btn.right &&  btn.left) bob.goLeft();
-
-	var tile = level.getTileAt(bob.x + 4, bob.y + 4);
-	bob.inWater = tile.isWater; // TODO check enter, exit (for particles, etc)
-
-	if (btnp.A) bob.action(tile);
+	
 
 	bob.update();
 

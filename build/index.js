@@ -6576,7 +6576,6 @@ var GRAVITY     = 0.5;
 var MAX_GRAVITY = 3;
 var WATER_FORCE = -0.3;
 var MAX_WATER   = -1.5;
-var ANIM_SPEED  = 0.3;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Bob() {
@@ -6590,7 +6589,9 @@ function Bob() {
 	this.flipH = false;
 
 	// state
+	this.onTile   = null;
 	this.grounded = false;
+	this.climbing = false;
 	this.inWater  = 0;
 	this.jumping  = false;
 	this.jumpCounter = 0;
@@ -6606,7 +6607,76 @@ Bob.prototype.setPosition = function (doorId) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.action = function (tile) {
+	if (tile.isDoor) {
+		var door = level.doors[tile.doorId];
+		this.controller.changeLevel(door.level, door.doorId);
+	}
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.startJump = function () {
+	if (this.climbing) {
+		// TODO
+		return;
+	}
+	if (!this.grounded && !this.inWater) return;
+	// TODO: ceiling test
+	this.jumping = true;
+	this.jumpCounter = 0;
+	this.grounded = false;
+};
+
+Bob.prototype.jump = function () {
+	if (this.climbing) {
+		this.sy = -1;
+		return;
+	}
+	if (this.onTile.isVine) {
+		this.climbing = true;
+		return;
+	}
+	if (!this.jumping) return;
+	if (this.jumpCounter++ > 12) this.jumping = false;
+	this.sy = -3 + this.jumpCounter * 0.08;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.goDown = function () {
+	if (this.inWater && !this.grounded) {
+		// water movement
+		this.sy = Math.min(2, this.sy + 0.5);
+	} else if (this.climbing) {
+		// vine movement
+		this.sy = 1;
+	}
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype._updateControls = function () {
+	if (btnp.up)  this.startJump();
+	if (btnr.up)  this.jumping = false;
+	if (btn.up)   this.jump();
+	if (btn.down) this.goDown();
+
+	// if (btn.down)  TODO going down from one way platforms
+	if ( btn.right && !btn.left) { this.sx = 1;  this.flipH = false; } // going right
+	if (!btn.right &&  btn.left) { this.sx = -1; this.flipH = true;  } // going left
+
+	var tile = this.onTile = level.getTileAt(this.x + 4, this.y + 4);
+	this.inWater = tile.isWater; // TODO check enter, exit (for particles, etc)
+	this.onVine  = tile.isVine;
+
+	if (btnp.A) this.action(tile);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.update = function () {
+	// friction
+	this.sx *= 0.8;
+
+	this._updateControls();
+
 	if (this.inWater === 1) {
 		this.sy += WATER_FORCE;
 		this.sy = Math.max(this.sy, MAX_WATER);
@@ -6614,6 +6684,10 @@ Bob.prototype.update = function () {
 		this.sy -= 0.1;
 		this.sy = Math.max(this.sy, MAX_WATER);
 		this.sy *= 0.9;
+	} else if (this.climbing) {
+		this.sy *= 0.8;
+		this.sx *= 0.7;
+		if (!this.onTile.isVine) this.climbing = false;
 	} else if (!this.grounded) {
 		this.sy += GRAVITY;
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
@@ -6654,14 +6728,16 @@ Bob.prototype.update = function () {
 		var tileDR = level.getTileAt(x + 6, y + 8);
 		if (tileDL.isSolid || tileDR.isSolid) {
 			this.grounded = true;
-			this.jumping = false;
+			this.jumping  = false;
+			this.climbing = false;
 			this.sy = 0;
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
 			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 			if (this.y <= targetY) {
 				this.grounded = true;
-				this.jumping = false;
+				this.jumping  = false;
+				this.climbing = false;
 				this.sy = 0;
 				y = targetY;
 			}
@@ -6683,55 +6759,16 @@ Bob.prototype.update = function () {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.startJump = function () {
-	if (!this.grounded && !this.inWater) return;
-	// TODO: ceiling test
-	this.jumping = true;
-	this.jumpCounter = 0;
-	this.grounded = false;
-};
-Bob.prototype.endJump = function () {
-	this.jumping = false;
-};
-
-Bob.prototype.jump = function () {
-	if (!this.jumping) return;
-	if (this.jumpCounter++ > 12) this.jumping = false;
-	this.sy = -3 + this.jumpCounter * 0.08;
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.goLeft = function () {
-	this.sx = -1;
-	this.flipH = true;
-	this.frame += ANIM_SPEED;
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.goRight = function () {
-	this.sx = 1;
-	this.flipH = false;
-	this.frame += ANIM_SPEED;
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.goDown = function () {
-	if (!this.inWater || this.grounded) return;
-	this.sy = Math.min(2, this.sy + 0.5);
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.action = function (tile) {
-	if (tile.isDoor) {
-		var door = level.doors[tile.doorId];
-		this.controller.changeLevel(door.level, door.doorId);
-	}
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.draw = function () {
 	var s = 255;
-	if (this.sx > 0.4 || this.sx < -0.4) {
+	if (this.climbing) {
+		if (this.sy > 0.2 || this.sy < -0.2) {
+			this.frame += 0.1;
+			if (this.frame >= 4) this.frame = 0;
+		}
+		s = 248 + ~~this.frame;
+	} else if (this.sx > 0.4 || this.sx < -0.4) {
+		this.frame += 0.3;
 		if (this.frame >= 3) this.frame = 0;
 		s = 252 + ~~this.frame;
 	}
@@ -6804,22 +6841,7 @@ GameController.prototype.ditherTransition = function () {
 GameController.prototype.update = function () {
 	if (inTransition) return this.ditherTransition();
 
-	bob.sx *= 0.8;
-
-	if (btnp.up) bob.startJump();
-	if (btnr.up) bob.endJump();
-	if (btn.up)  bob.jump();
-
-	if (btn.down) bob.goDown();
-
-	// if (btn.down)  TODO going down from one way platforms
-	if ( btn.right && !btn.left) bob.goRight();
-	if (!btn.right &&  btn.left) bob.goLeft();
-
-	var tile = level.getTileAt(bob.x + 4, bob.y + 4);
-	bob.inWater = tile.isWater; // TODO check enter, exit (for particles, etc)
-
-	if (btnp.A) bob.action(tile);
+	
 
 	bob.update();
 
@@ -6838,17 +6860,22 @@ var TILE_HEIGHT = settings.spriteSize[1];
 var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0 };
 var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true,  isWater: 0 };
 var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, canJumpThru: true };
+var VINE    = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isVine: true };
+var VINETOP = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, isVine: true, canJumpThru: true };
 var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 0 };
 var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 1 };
 var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 2 };
 var WATER   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 1 };
 var WATER_S = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 2 };
 
+
 function getTileFromMapItem(mapItem) {
 	if (!mapItem) return EMPTY;
 	switch (mapItem.sprite) {
 		case 0: return SOLID;
 		case 1: return ONE_WAY;
+		case 2: return VINE;
+		case 3: return VINETOP;
 		case 4: return DOOR_0;
 		case 5: return DOOR_1;
 		case 6: return DOOR_2;
