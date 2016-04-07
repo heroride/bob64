@@ -6868,15 +6868,6 @@ GameController.prototype.update = function () {
 	bob.draw();
 };
 
-<<<<<<< HEAD
-	cls();
-	camera(scrollX, scrollY);
-	background.draw();
-	bob.draw();
-};
-
-=======
->>>>>>> upstream/master
 },{"./Bob.js":37,"./Level.js":39,"./TextDisplay.js":40}],39:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
