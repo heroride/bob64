@@ -27,8 +27,11 @@ TextDisplay.prototype.update = function () {
 		if (this.textParts.length === 0) {
 			return false;
 		}
-		this.textBuffer += '\n';
-		this.textBuffer += this.textParts.shift();
+		for (var i = 0; i < 3; i++) {
+			this.textBuffer += '\n';
+			this.textBuffer += this.textParts.shift();
+			if (this.textParts.length === 0) break;
+		}
 	}
 	return true;
 };
