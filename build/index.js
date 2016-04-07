@@ -6868,6 +6868,15 @@ GameController.prototype.update = function () {
 	bob.draw();
 };
 
+<<<<<<< HEAD
+	cls();
+	camera(scrollX, scrollY);
+	background.draw();
+	bob.draw();
+};
+
+=======
+>>>>>>> upstream/master
 },{"./Bob.js":37,"./Level.js":39,"./TextDisplay.js":40}],39:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -7006,8 +7015,11 @@ TextDisplay.prototype.update = function () {
 		if (this.textParts.length === 0) {
 			return false;
 		}
-		this.textBuffer += '\n';
-		this.textBuffer += this.textParts.shift();
+		for (var i = 0; i < 3; i++) {
+			this.textBuffer += '\n';
+			this.textBuffer += this.textParts.shift();
+			if (this.textParts.length === 0) break;
+		}
 	}
 	return true;
 };
@@ -7051,9 +7063,26 @@ TextDisplay.prototype.setText = function (text) {
 
 
 },{}],41:[function(require,module,exports){
+var DEBUG = true;
+
 var gameController = require('./GameController.js');
 
 gameController.loadLevel("start");
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// DEBUGGING FUNCTIONS 
+
+if (DEBUG) {
+	window.loadLevel = function (id) {
+		if (!assets.levels[id]) {
+			// let's try to create the level
+			var level = { "name": "", "background": id, "geometry": id + "_geo", "bgcolor": 6, "doors": ["", "", ""] };
+			assets.levels[id] = level;
+		}
+		gameController.loadLevel(id);
+	}
+}
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame
