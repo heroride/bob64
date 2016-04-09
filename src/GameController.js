@@ -1,6 +1,7 @@
 var level       = require('./Level.js');
 var bob         = require('./Bob.js');
 var TextDisplay = require('./TextDisplay.js');
+var Entity      = require('./Entity.js');
 
 var background  = new Map();
 var textDisplay = new TextDisplay();
@@ -41,6 +42,7 @@ GameController.prototype.removeEntity = function (entity) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.loadLevel = function (id, doorId, side) {
+	this.entities = []; // remove all entities
 	var def = assets.levels[id];
 	level.init(def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
@@ -48,6 +50,8 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 	bob.setPosition(level.bobPos);
 	background = getMap(def.background);
 	paper(def.bgcolor);
+
+	this.addEntity(new Entity().setPosition(1, 3)); // REMOVEME
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
