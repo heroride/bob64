@@ -32,7 +32,7 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 	level.init(def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
-	bob.setPosition(level.bobPos); // TODO
+	bob.setPosition(level.bobPos);
 	background = getMap(def.background);
 	paper(def.bgcolor);
 };
