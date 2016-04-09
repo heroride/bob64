@@ -6574,7 +6574,7 @@ var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 3;
-var WATER_FORCE = -0.3;
+var WATER_FORCE = -0.1;
 var MAX_WATER   = -1.5;
 
 var ATTACK_NONE  = 0;
@@ -6591,6 +6591,11 @@ function Bob() {
 	this.frame = 0;
 	this.flipH = false;
 
+	// abilities
+	this.canAttack     = false;
+	this.canDive       = false;
+	this.canDoubleJump = false;
+
 	// state
 	this.onTile   = null;
 	this.grounded = false;
@@ -6598,6 +6603,7 @@ function Bob() {
 	this.inWater  = 0;
 	this.jumping  = false;
 	this.jumpCounter = 0;
+	this.doubleJumpUsed = false;
 
 	this.isLocked  = false; // e.g. when slashing
 	this.attacking = ATTACK_NONE;
@@ -6631,7 +6637,7 @@ Bob.prototype.action = function () {
 		// enter door
 		var door = level.doors[tile.doorId];
 		this.controller.changeLevel(door.level, door.doorId);
-	} else {
+	} else if (this.canAttack) {
 		// attack
 		this.attack();
 	}
@@ -6643,7 +6649,10 @@ Bob.prototype.startJump = function () {
 		// TODO
 		return;
 	}
-	if (!this.grounded && !this.inWater) return;
+	if (!this.grounded) {
+		if (this.canDoubleJump && !this.doubleJumpUsed) this.doubleJumpUsed = true;
+		else if (!this.inWater) return; // allow bob to jump from water
+	}
 	// if there is a ceiling directly on top of Bob's head, cancel jump.
 	// if (level.getTileAt(this.x + 1, this.y - 2).isSolid || level.getTileAt(this.x + 6, this.y - 2).isSolid) return;
 	this.grounded    = false;
@@ -6668,6 +6677,7 @@ Bob.prototype.jump = function () {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.goDown = function () {
 	if (this.inWater && !this.grounded) {
+		if (!this.canDive) return;
 		// water movement
 		this.sy = Math.min(2, this.sy + 0.5);
 	} else if (this.climbing) {
@@ -6699,6 +6709,7 @@ Bob.prototype._updateControls = function () {
 
 		if (btnp.A) this.action();
 	} else {
+		if (btn.up)   this.jump(); // FIXME
 		this._updateTileState();
 	}
 };
@@ -6797,6 +6808,7 @@ Bob.prototype.update = function () {
 Bob.prototype._ground = function () {
 	this.grounded = true;
 	this.jumping  = false;
+	this.doubleJumpUsed = false;
 	this.climbing = false;
 	this.sy = 0;
 }
@@ -6805,7 +6817,6 @@ Bob.prototype._ground = function () {
 Bob.prototype.draw = function () {
 	if (this.attacking === ATTACK_SLASH) {
 		var animId = 'slash' + (this.flipH ? 'Left' : 'Right') + ~~this.slashCounter;
-		console.log(animId)
 		draw(assets.chainsaw[animId], this.x - 16, this.y - 16);
 		this.slashCounter += 0.33;
 		if (this.slashCounter >= 5) this.endAttack();
@@ -6845,14 +6856,27 @@ var isDisplayingText = false;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
-	this.level = level;
-	this.bob   = bob;
+	this.level       = level;
+	this.bob         = bob;
+	this.entities    = [];
 
 	level.controller = this;
 	bob.controller   = this;
 }
 
 module.exports = new GameController();
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.addEntity = function (entity) {
+	this.entities.push(entity);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.removeEntity = function (entity) {
+	var index = this.entities.indexOf(entity);
+	if (index === -1) return console.warn('entity does not exist');
+	this.entities.splice(index, 1);
+};
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.loadLevel = function (id, doorId, side) {
@@ -6916,6 +6940,9 @@ GameController.prototype.update = function () {
 	cls();
 	camera(scrollX, scrollY);
 	background.draw();
+	for (var i = 0; i < this.entities.length; i++) {
+		this.entities[i].update(level, bob); // update and draw
+	}
 	bob.draw();
 };
 
@@ -7139,6 +7166,39 @@ TextDisplay.prototype.setDialog = function (dialog) {
 },{}],41:[function(require,module,exports){
 var DEBUG = true;
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// PREPARE LEVELS
+var levels = assets.levels;
+var doors  = assets.doors;
+
+for (var id in levels) {
+	var level = levels[id];
+	level.doors = ['', '', '']; 
+}
+
+for (var i = 0; i < doors.length; i++) {
+	var door = doors[i];
+
+	var doorA = door[0];
+	var doorB = door[1];
+
+	var doorAsplit = doorA.split(':');
+	var doorBsplit = doorB.split(':');
+
+	var levelA = doorAsplit[0];
+	var levelB = doorBsplit[0];
+
+	var doorIdA = doorAsplit[1];
+	var doorIdB = doorBsplit[1];
+
+	console.log(levelA, doorIdA, levelB, doorIdB)
+
+	levels[levelA].doors[doorIdA] = doorB;
+	levels[levelB].doors[doorIdB] = doorA;
+}
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 var gameController = require('./GameController.js');
 
 gameController.loadLevel("start");
@@ -7147,6 +7207,7 @@ gameController.loadLevel("start");
 // DEBUGGING FUNCTIONS 
 
 if (DEBUG) {
+	// load level from console
 	window.loadLevel = function (id) {
 		if (!assets.levels[id]) {
 			// let's try to create the level
@@ -7155,6 +7216,12 @@ if (DEBUG) {
 		}
 		gameController.loadLevel(id);
 	}
+
+	// hack Bob abilities
+	var bob = require('./Bob.js');
+	bob.canDive       = true;
+	bob.canDoubleJump = true;
+	bob.canAttack     = true;
 }
 
 
@@ -7164,7 +7231,7 @@ exports.update = function () {
 	gameController.update();
 };
 
-},{"./GameController.js":38}],42:[function(require,module,exports){
+},{"./Bob.js":37,"./GameController.js":38}],42:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {

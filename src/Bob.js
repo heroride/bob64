@@ -4,7 +4,7 @@ var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 3;
-var WATER_FORCE = -0.3;
+var WATER_FORCE = -0.1;
 var MAX_WATER   = -1.5;
 
 var ATTACK_NONE  = 0;
@@ -21,6 +21,11 @@ function Bob() {
 	this.frame = 0;
 	this.flipH = false;
 
+	// abilities
+	this.canAttack     = false;
+	this.canDive       = false;
+	this.canDoubleJump = false;
+
 	// state
 	this.onTile   = null;
 	this.grounded = false;
@@ -28,6 +33,7 @@ function Bob() {
 	this.inWater  = 0;
 	this.jumping  = false;
 	this.jumpCounter = 0;
+	this.doubleJumpUsed = false;
 
 	this.isLocked  = false; // e.g. when slashing
 	this.attacking = ATTACK_NONE;
@@ -61,7 +67,7 @@ Bob.prototype.action = function () {
 		// enter door
 		var door = level.doors[tile.doorId];
 		this.controller.changeLevel(door.level, door.doorId);
-	} else {
+	} else if (this.canAttack) {
 		// attack
 		this.attack();
 	}
@@ -73,7 +79,10 @@ Bob.prototype.startJump = function () {
 		// TODO
 		return;
 	}
-	if (!this.grounded && !this.inWater) return;
+	if (!this.grounded) {
+		if (this.canDoubleJump && !this.doubleJumpUsed) this.doubleJumpUsed = true;
+		else if (!this.inWater) return; // allow bob to jump from water
+	}
 	// if there is a ceiling directly on top of Bob's head, cancel jump.
 	// if (level.getTileAt(this.x + 1, this.y - 2).isSolid || level.getTileAt(this.x + 6, this.y - 2).isSolid) return;
 	this.grounded    = false;
@@ -98,6 +107,7 @@ Bob.prototype.jump = function () {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.goDown = function () {
 	if (this.inWater && !this.grounded) {
+		if (!this.canDive) return;
 		// water movement
 		this.sy = Math.min(2, this.sy + 0.5);
 	} else if (this.climbing) {
@@ -129,6 +139,7 @@ Bob.prototype._updateControls = function () {
 
 		if (btnp.A) this.action();
 	} else {
+		if (btn.up)   this.jump(); // FIXME
 		this._updateTileState();
 	}
 };
@@ -227,6 +238,7 @@ Bob.prototype.update = function () {
 Bob.prototype._ground = function () {
 	this.grounded = true;
 	this.jumping  = false;
+	this.doubleJumpUsed = false;
 	this.climbing = false;
 	this.sy = 0;
 }
@@ -235,7 +247,6 @@ Bob.prototype._ground = function () {
 Bob.prototype.draw = function () {
 	if (this.attacking === ATTACK_SLASH) {
 		var animId = 'slash' + (this.flipH ? 'Left' : 'Right') + ~~this.slashCounter;
-		console.log(animId)
 		draw(assets.chainsaw[animId], this.x - 16, this.y - 16);
 		this.slashCounter += 0.33;
 		if (this.slashCounter >= 5) this.endAttack();
