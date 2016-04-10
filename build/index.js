@@ -5409,7 +5409,7 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":46}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":47}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
 
@@ -5792,7 +5792,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":46}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":47}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -6548,7 +6548,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":42,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":43,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -6856,59 +6856,91 @@ Bob.prototype.draw = function () {
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 
-var GRAVITY     = 0.1;
-var MAX_GRAVITY = 1;
-
-var a = assets.entities.onion;
-var walk   = [a.walk0, a.walk1, a.walk2, a.walk3, a.walk4];
-var attack = [a.attack0, a.attack1, a.attack2, a.attack3, a.attack4, a.attack5];
-
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Entity() {
-	this.x      = 0;
-	this.y      = 0;
-	this.width  = 8;
-	this.height = 8;
+	this.x          = 0;
+	this.y          = 0;
+	this.width      = 8;
+	this.height     = 8;
 
-	// rendering & animation
-	this.flipH  = false;
-	this.frame  = 0;
-	this.animSpeed = 0.12;
-	this.anim   = walk;
+	// physic
+	this.sx         = 0;
+	this.sy         = 0;
+	this.grounded   = false;
+	this.gravity    = 0.1;
+	this.maxGravity = 1;
 
-	// entity specific
-	this.sx = 0;
-	this.sy = 0;
-	this.grounded = false;
-	this.speed = 0.2;
-	this.direction = 1;
+	// flags
+	this.hasCollidedLevelFront = false;
+	this.hasCollidedLevelDown  = false;
+	this.hasCollidedLevelUp    = false;
 }
 
 module.exports = Entity;
+
+//█████████████████████████████████████████████████████████████████████████████████
+//████████████████████████████████████████▄███████▄░██████████▄░███████▄░██████████
+//█▀▄▄▄▄▀█▄░▄██▄░▄█▀▄▄▄▄▀█▄░▀▄▄▄█▄░▀▄▄▄█▄▄░███▀▄▄▄▀░██▀▄▄▄▄▀███░▀▄▄▄▀███░███▀▄▄▄▄▀█
+//█░████░███░██░███░▄▄▄▄▄██░██████░███████░███░████░██▀▄▄▄▄░███░████░███░███░▄▄▄▄▄█
+//█▄▀▀▀▀▄████░░████▄▀▀▀▀▀█▀░▀▀▀██▀░▀▀▀██▀▀░▀▀█▄▀▀▀▄░▀█▄▀▀▀▄░▀█▀░▄▀▀▀▄█▀▀░▀▀█▄▀▀▀▀▀█
+//█████████████████████████████████████████████████████████████████████████████████
+Entity.prototype.move = function (level, bob) {
+	// OVERIDE THIS
+	return false; // return true if you need to check collision with level
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Entity.prototype.collideFront = function () {
+	// OVERIDE THIS
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Entity.prototype.onGrounds = function () {
+	// OVERIDE THIS
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Entity.prototype.animate = function () {
+	// OVERIDE THIS
+};
+
+//████████████████████████████████████████████████
+//████████████████████████████████████████████████
+//█▀▄▄▄▀░█▀▄▄▄▄▀█▄░▀▄▀▀▄▀█▄░▀▄▀▀▄▀█▀▄▄▄▄▀█▄░▀▄▄▀██
+//█░██████░████░██░██░██░██░██░██░█░████░██░███░██
+//█▄▀▀▀▀▄█▄▀▀▀▀▄█▀░▀█░▀█░█▀░▀█░▀█░█▄▀▀▀▀▄█▀░▀█▀░▀█
+//████████████████████████████████████████████████
+Entity.prototype.update = function (level, bob) {
+	if (this.move(level, bob)) this.levelCollisions(level, bob);
+	this.animate();
+};
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Entity.prototype.setPosition = function (i ,j) {
 	this.x = i * TILE_WIDTH;
 	this.y = j * TILE_HEIGHT;
 	return this;
-}
+};
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Entity.prototype.update = function (level, bob) {
-	if (this.grounded) {
-		this.sx = this.speed * this.direction;
-	} else {
-		this.sy += GRAVITY;
-		this.sy = Math.min(this.sy, MAX_GRAVITY);
-	}
+Entity.prototype.fall = function () {
+	this.sy += this.gravity;
+	this.sy = Math.min(this.sy, this.maxGravity);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Entity.prototype.levelCollisions = function (level, bob) {
+	this.hasCollidedLevelFront = false;
+	this.hasCollidedLevelDown  = false;
+	this.hasCollidedLevelUp    = false;
 
 	var x = this.x + this.sx;
 	var y = this.y + this.sy;
 
 	// check level boundaries
 	var maxX = level.width * TILE_WIDTH - this.width; // TODO don't need to be calculated each frames
-	if (x < 0)    {x = 0;    this.collideFront(); }
-	if (x > maxX) {x = maxX; this.collideFront(); }
+	if (x < 0)    {x = 0;    this.hasCollidedLevelFront = true; this.collideFront(); }
+	if (x > maxX) {x = maxX; this.hasCollidedLevelFront = true; this.collideFront(); }
 
 	var front       = 8;
 	var frontOffset = 0;
@@ -6917,6 +6949,7 @@ Entity.prototype.update = function (level, bob) {
 	//---------------------------------------------------------
 	// horizontal collisions (check 2 front point)
 	if (level.getTileAt(x + front, this.y + 1).isSolid || level.getTileAt(x + front, this.y + 7).isSolid) {
+		this.hasCollidedLevelFront = true;
 		this.collideFront();
 		x = ~~(x / TILE_WIDTH) * TILE_WIDTH + frontOffset;
 	}
@@ -6937,13 +6970,19 @@ Entity.prototype.update = function (level, bob) {
 		var tileDR = level.getTileAt(x + 6, y + this.height);
 		if (tileDL.isSolid || tileDR.isSolid) {
 			// collided with solid ground
-			this._ground();
+			this.hasCollidedLevelDown = true;
+			this.grounded = true;
+			this.sy = 0;
+			this.onGrounds();
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
 			// collided with one-way thru platform. Check if Entity where over the edge the frame before.
 			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
 			if (this.y <= targetY) {
-				this._ground();
+				this.hasCollidedLevelDown = true;
+				this.grounded = true;
+				this.sy = 0;
+				this.onGrounds();
 				y = targetY;
 			}
 		}
@@ -6952,8 +6991,8 @@ Entity.prototype.update = function (level, bob) {
 		var tileUL = level.getTileAt(x + 1, y);
 		var tileUR = level.getTileAt(x + 6, y);
 		if (tileUL.isSolid || tileUR.isSolid) {
+			this.hasCollidedLevelUp = true;
 			this.sy = 0;
-			// this.jumpCounter += 2;
 			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
 		}
 	}
@@ -6961,37 +7000,14 @@ Entity.prototype.update = function (level, bob) {
 	// fetch position
 	this.x = x;
 	this.y = y;
-	this.animate();
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Entity.prototype.collideFront = function () {
-	// make entity turn around
-	this.direction *= -1;
-	this.flipH = this.direction === -1;
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Entity.prototype._ground = function () {
-	this.grounded = true;
-	this.sy = 0;
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Entity.prototype.animate = function () {
-	this.frame += this.animSpeed;
-	if (this.frame >= this.anim.length) this.frame = 0;
-	var img = this.anim[~~this.frame];
-	draw(img, this.x, this.y - 8, this.flipH);
 };
 
 },{}],39:[function(require,module,exports){
 var level       = require('./Level.js');
 var bob         = require('./Bob.js');
 var TextDisplay = require('./TextDisplay.js');
-var Entity      = require('./Entity.js');
+var Onion       = require('./Onion.js');
 
-var background  = new Map();
 var textDisplay = new TextDisplay();
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -6999,10 +7015,8 @@ var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
-
 var nextLevel, nextDoor, inTransition, transitionCount, nextSide;
 var isDisplayingText = false;
-
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
@@ -7036,10 +7050,9 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos);
-	background = getMap(def.background);
 	paper(def.bgcolor);
 
-	this.addEntity(new Entity().setPosition(1, 3)); // REMOVEME
+	this.addEntity(new Onion().setPosition(1, 3)); // REMOVEME
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7092,14 +7105,14 @@ GameController.prototype.update = function () {
 
 	cls();
 	camera(scrollX, scrollY);
-	background.draw();
+	draw(level.background);
 	for (var i = 0; i < this.entities.length; i++) {
 		this.entities[i].update(level, bob); // update and draw
 	}
 	bob.draw();
 };
 
-},{"./Bob.js":37,"./Entity.js":38,"./Level.js":40,"./TextDisplay.js":41}],40:[function(require,module,exports){
+},{"./Bob.js":37,"./Level.js":40,"./Onion.js":41,"./TextDisplay.js":42}],40:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 
@@ -7139,6 +7152,8 @@ function Level() {
 	this.width  = 0;
 	this.height = 0;
 	this.doors  = [null, null, null];
+
+	this.background  = new Texture();
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7166,6 +7181,25 @@ Level.prototype.init = function (def) {
 	for (var y = 0; y < map.height; y++) {
 		this.grid[x][y] = getTileFromMapItem(map.items[x][y]);
 	}}
+
+	this._initBackground(def);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype._initBackground = function (def) {
+	var texture = this.background;
+	var mapId = def.background;
+	var map = getMap(mapId);
+	texture.resize(map.width * TILE_WIDTH, map.height * TILE_HEIGHT);
+	texture.draw(map);
+
+	var layerId = 1;
+	var layer = getMap(mapId + '_L' + layerId);
+	while (layer) {
+		texture.draw(layer);
+		layerId++;
+		layer = getMap(mapId + '_L' + layerId);
+	}
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7217,6 +7251,96 @@ Level.prototype.getTileAt = function (x, y) {
 
 module.exports = new Level();
 },{}],41:[function(require,module,exports){
+var Entity = require('./Entity.js');
+
+var a = assets.entities.onion;
+var walk   = [a.walk0, a.walk1, a.walk2, a.walk3, a.walk4];
+var attack = [a.attack0, a.attack1, a.attack2, a.attack4];
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+function Onion() {
+	Entity.call(this);
+
+	// physic
+	this.gravity    = 0.12;
+	this.maxGravity = 1;
+
+	// onion properties
+	this.speed     = 0.2;
+	this.direction = 1;
+
+	// rendering & animation
+	this.flipH     = false;
+	this.frame     = 0;
+	this.animSpeed = 0.12;
+	this.anim      = walk;
+
+	// state
+	this.springCounter = 0;
+	this.jumping = false;
+}
+inherits(Onion, Entity);
+
+module.exports = Onion;
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Onion.prototype.move = function (level, bob) {
+
+	// TODO collision with bob here
+
+	// states
+	if (this.grounded && this.springCounter++ > 60) {
+		this.springCounter = 0;
+		this.sy = -2;
+		this.grounded = false;
+		this.jumping = true;
+		this.anim = attack;
+		this.frame = 0;
+		return true
+	}
+
+	// walking
+	if (this.grounded) {
+		this.sx = this.speed * this.direction;
+		// test next front ground
+		if (level.getTileAt(this.x + 4 + this.direction * 2, this.y + 10).isEmpty) {
+			// turn around
+			this.direction *= -1;
+			this.flipH = this.direction === -1;
+		}
+	} else {
+		this.fall();
+	}
+	return true;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Onion.prototype.onGrounds = function () {
+	this.jumping = false;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Onion.prototype.collideFront = function () {
+	// make entity turn around
+	this.sx = 0;
+	this.direction *= -1;
+	this.flipH = this.direction === -1;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Onion.prototype.animate = function () {
+	this.frame += this.animSpeed;
+	if (this.anim === attack) {
+		if (this.frame >= this.anim.length) {
+			this.anim = walk;
+			this.frame = 0;
+		}
+	}
+	if (this.frame >= this.anim.length) this.frame = 0;
+	var img = this.anim[~~this.frame];
+	draw(img, this.x, this.y - 8, this.flipH);
+};
+},{"./Entity.js":38}],42:[function(require,module,exports){
 TextDisplay = function () {
 	this.textWindow = new Texture(64, 19);
 	this.textBuffer = '';
@@ -7316,7 +7440,7 @@ TextDisplay.prototype.setDialog = function (dialog) {
 	this._setDialog();
 };
 
-},{}],42:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 var DEBUG = true;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7389,7 +7513,7 @@ exports.update = function () {
 	gameController.update();
 };
 
-},{"./Bob.js":37,"./GameController.js":39}],43:[function(require,module,exports){
+},{"./Bob.js":37,"./GameController.js":39}],44:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -7414,7 +7538,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -7507,14 +7631,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],45:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8104,4 +8228,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":45,"_process":44,"inherits":43}]},{},[35]);
+},{"./support/isBuffer":46,"_process":45,"inherits":44}]},{},[35]);

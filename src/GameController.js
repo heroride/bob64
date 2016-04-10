@@ -1,9 +1,8 @@
 var level       = require('./Level.js');
 var bob         = require('./Bob.js');
 var TextDisplay = require('./TextDisplay.js');
-var Entity      = require('./Entity.js');
+var Onion       = require('./Onion.js');
 
-var background  = new Map();
 var textDisplay = new TextDisplay();
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -11,10 +10,8 @@ var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
-
 var nextLevel, nextDoor, inTransition, transitionCount, nextSide;
 var isDisplayingText = false;
-
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
@@ -48,10 +45,9 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos);
-	background = getMap(def.background);
 	paper(def.bgcolor);
 
-	this.addEntity(new Entity().setPosition(1, 3)); // REMOVEME
+	this.addEntity(new Onion().setPosition(1, 3)); // REMOVEME
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -104,7 +100,7 @@ GameController.prototype.update = function () {
 
 	cls();
 	camera(scrollX, scrollY);
-	background.draw();
+	draw(level.background);
 	for (var i = 0; i < this.entities.length; i++) {
 		this.entities[i].update(level, bob); // update and draw
 	}
