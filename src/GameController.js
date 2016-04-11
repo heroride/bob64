@@ -22,9 +22,29 @@ function GameController() {
 	level.controller = this;
 	bob.controller   = this;
 	Entity.prototype.controller = this;
+
+	this.checkpoint = {
+		levelId: 'ground0',
+		bob: null // TODO
+	};
 }
 
 module.exports = new GameController();
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.saveState = function () {
+	this.checkpoint = {
+		levelId: this.level.id,
+		bob: bob.saveState()
+	};
+};
+
+GameController.prototype.restoreState = function () {
+	if (!this.checkpoint) return;
+	this.loadLevel(this.checkpoint.id);
+	bob.restoreState(this.checkpoint.bob);
+};
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.addEntity = function (entity) {
@@ -42,7 +62,8 @@ GameController.prototype.removeEntity = function (entity) {
 GameController.prototype.loadLevel = function (id, doorId, side) {
 	this.entities = []; // remove all entities
 	var def = assets.levels[id];
-	level.init(def);
+	if (!def) return console.error('Level does not exist', id);
+	level.init(id, def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos);
