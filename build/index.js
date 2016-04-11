@@ -6664,6 +6664,25 @@ function Bob() {
 module.exports = new Bob();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bob.prototype.saveState = function () {
+	return {
+		x:             this.x,
+		y:             this.y,
+		canAttack:     this.canAttack,
+		canDive:       this.canDive,
+		canDoubleJump: this.canDoubleJump
+	};
+};
+
+Bob.prototype.restoreState = function (state) {
+	this.x             = state.x;
+	this.y             = state.y;
+	this.canAttack     = state.canAttack;
+	this.canDive       = state.canDive;
+	this.canDoubleJump = state.canDoubleJump;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.setPosition = function (pos) {
 	this.x = pos.x || 0;
 	this.y = pos.y || 0;
@@ -6671,14 +6690,14 @@ Bob.prototype.setPosition = function (pos) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Bob.prototype.attack = function () {
-	this.isLocked     = true;
-	this.attacking    = ATTACK_SLASH;
+	this.isLocked      = true;
+	this.attacking     = ATTACK_SLASH;
 	this.attackCounter = 0;
 };
 
 Bob.prototype.endAttack = function () {
-	this.isLocked     = false;
-	this.attacking    = ATTACK_NONE;
+	this.isLocked  = false;
+	this.attacking = ATTACK_NONE;
 };
 
 Bob.prototype.getattackBB = function () {
@@ -7120,9 +7139,29 @@ function GameController() {
 	level.controller = this;
 	bob.controller   = this;
 	Entity.prototype.controller = this;
+
+	this.checkpoint = {
+		levelId: 'ground0',
+		bob: null // TODO
+	};
 }
 
 module.exports = new GameController();
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.saveState = function () {
+	this.checkpoint = {
+		levelId: this.level.id,
+		bob: bob.saveState()
+	};
+};
+
+GameController.prototype.restoreState = function () {
+	if (!this.checkpoint) return;
+	this.loadLevel(this.checkpoint.id);
+	bob.restoreState(this.checkpoint.bob);
+};
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.addEntity = function (entity) {
@@ -7140,7 +7179,8 @@ GameController.prototype.removeEntity = function (entity) {
 GameController.prototype.loadLevel = function (id, doorId, side) {
 	this.entities = []; // remove all entities
 	var def = assets.levels[id];
-	level.init(def);
+	if (!def) return console.error('Level does not exist', id);
+	level.init(id, def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos);
@@ -7242,6 +7282,7 @@ function getTileFromMapItem(mapItem) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Level() {
+	this.id     = null;
 	this.map    = null;
 	this.bobPos = { x: 0, y: 0 };
 	this.grid   = [[]];
@@ -7253,7 +7294,7 @@ function Level() {
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Level.prototype.init = function (def) {
+Level.prototype.init = function (id, def) {
 	var map = getMap(def.geometry);
 	var bobPosition = map.find(255)[0];
 
@@ -7278,7 +7319,6 @@ Level.prototype.init = function (def) {
 		var item = map.items[x][y];
 		this.grid[x][y] = getTileFromMapItem(item);
 		this._addEntityFromMapItem(item);
-
 	}}
 
 	this._initBackground(def);
@@ -7341,15 +7381,6 @@ Level.prototype.setBobPositionOnDoor = function (doorId) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype.setBobPositionOnSide = function (bob, direction) {
-	// if (direction === 'right' || direction === 'left') {
-	// 	// horizontal translation
-	// 	this.bobPos.y = bob.y;
-	// 	this.bobPos.x = direction === 'right' ? -4 : this.width * TILE_WIDTH - 4;
-	// } else {
-	// 	// vertical translation
-	// 	this.bobPos.x = bob.x;
-	// 	this.bobPos.y = direction === 'down' ? -4 : this.height * TILE_WIDTH - 2;
-	// }
 	if (direction === 'right' || direction === 'left') {
 		// horizontal translation
 		this.bobPos.y = bob.y;
