@@ -1,17 +1,24 @@
-var level       = require('./Level.js');
-var bob         = require('./Bob.js');
-var TextDisplay = require('./TextDisplay.js');
-var Entity      = require('./Entity.js');
+var level          = require('./Level.js');
+var bob            = require('./Bob.js');
+var TextDisplay    = require('./TextDisplay.js');
+var Entity         = require('./Entity.js');
+var FadeTransition = require('./FadeTransition.js');
+var CutScene       = require('./CutScene.js');
 
-var textDisplay = new TextDisplay();
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
 
-var nextLevel, nextDoor, inTransition, transitionCount, nextSide;
-var isDisplayingText = false;
+
+var nextLevel, nextDoor, nextSide;
+
+// lock game when fade transition, text display, cutscene.
+var isLocked    = null;
+var fader       = new FadeTransition();
+var textDisplay = new TextDisplay();
+var cutscene    = new CutScene();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
@@ -30,7 +37,6 @@ function GameController() {
 }
 
 module.exports = new GameController();
-
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.saveState = function () {
@@ -71,9 +77,18 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.startFade = function () {
+	isLocked = fader;
+	var self = this;
+	fader.start(function () {
+		self.loadLevel(nextLevel, nextDoor, nextSide);
+		isLocked = false;
+	});
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.changeLevel = function (id, doorId) {
-	inTransition = true;
-	transitionCount = -30;
+	this.startFade();
 	nextLevel = id;
 	nextDoor  = doorId;
 	nextSide  = undefined;
@@ -82,8 +97,7 @@ GameController.prototype.changeLevel = function (id, doorId) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.goToNeighbourLevel = function (direction) {
 	if (!level[direction]) return false;
-	inTransition = true;
-	transitionCount = -30;
+	this.startFade();
 	nextLevel = level[direction];
 	nextDoor  = undefined;
 	nextSide  = direction;
@@ -92,26 +106,25 @@ GameController.prototype.goToNeighbourLevel = function (direction) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.displayDialog = function (dialog) {
-	textDisplay.setDialog(dialog);
-	isDisplayingText = true;
+	isLocked = textDisplay;
+	textDisplay.start(dialog, function () {
+		isLocked = null;
+	});
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.ditherTransition = function () {
-	camera(0, 0);
-	draw(assets.ditherFondu, 0, transitionCount * TILE_HEIGHT);
-	if (++transitionCount > 0) {
-		this.loadLevel(nextLevel, nextDoor, nextSide);
-		inTransition = false;
-	}
+GameController.prototype.startCutScene = function (data) {
+	isLocked = cutscene;
+	cutscene.start(data, function () {
+		isLocked = null;
+	});
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.update = function () {
-	if (inTransition)     return this.ditherTransition();
-	if (isDisplayingText) return isDisplayingText = textDisplay.update();
+	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.displayDialog(assets.dialogs.bobIntro); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(); // FIXME just for testing
 
 	bob.update();
 

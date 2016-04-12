@@ -3,9 +3,19 @@ TextDisplay = function () {
 	this.textBuffer = '';
 	this.textParts  = [];
 	this.dialog     = [];
+	this.onFinishCallback = null;
 }
 
 module.exports = TextDisplay;
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+TextDisplay.prototype.start = function (dialog, cb) {
+	this.onFinishCallback = cb;
+	// make a copy of dialog
+	this.dialog = JSON.parse(JSON.stringify(dialog));
+	this._setDialog();
+	return this;
+};
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** return true if there is still some text to be displayed */
@@ -30,6 +40,8 @@ TextDisplay.prototype.update = function () {
 				this._setDialog();
 				return true;
 			}
+			this.onFinishCallback && this.onFinishCallback();
+			this.onFinishCallback = null;
 			return false;
 		}
 		for (var i = 0; i < 3; i++) {
@@ -88,11 +100,4 @@ TextDisplay.prototype._setDialog = function () {
 
 	// add the first 3 lines to be printed
 	this.textBuffer += this.textParts.shift() + '\n' + (this.textParts.shift() || '') + '\n' + (this.textParts.shift() || '');
-};
-
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-TextDisplay.prototype.setDialog = function (dialog) {
-	// make a copy of dialog
-	this.dialog = JSON.parse(JSON.stringify(dialog));
-	this._setDialog();
 };

@@ -1,6 +1,6 @@
 {
 	"bobIntro": [
-		{ "text": "hello world" },
+		{ "text": "..." },
 		{ "who": "bob", "text": "Oh boy,\nthe chainsaw I ordered finally came!\nIt’s only been a whole YEAR,\njeez..." }
 	]
 }
