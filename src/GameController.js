@@ -4,6 +4,7 @@ var TextDisplay    = require('./TextDisplay.js');
 var Entity         = require('./Entity.js');
 var FadeTransition = require('./FadeTransition.js');
 var bossIntro      = require('./cutscenes/bossIntro.js');
+var cloudFairy      = require('./cutscenes/cloudFairy.js');
 var firstFairy      = require('./cutscenes/firstFairy.js');
 var secondFairy      = require('./cutscenes/secondFairy.js');
 
@@ -124,7 +125,7 @@ GameController.prototype.startCutScene = function (cutscene) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(secondFairy()); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(cloudFairy()); // FIXME just for testing
 
 	bob.update();
 
