@@ -3,7 +3,7 @@ var bob            = require('./Bob.js');
 var TextDisplay    = require('./TextDisplay.js');
 var Entity         = require('./Entity.js');
 var FadeTransition = require('./FadeTransition.js');
-var CutScene       = require('./CutScene.js');
+var bossIntro      = require('./cutscenes/bossIntro.js');
 
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -18,7 +18,6 @@ var nextLevel, nextDoor, nextSide;
 var isLocked    = null;
 var fader       = new FadeTransition();
 var textDisplay = new TextDisplay();
-var cutscene    = new CutScene();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
@@ -80,7 +79,7 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 GameController.prototype.startFade = function () {
 	isLocked = fader;
 	var self = this;
-	fader.start(function () {
+	fader.start(null, function () {
 		self.loadLevel(nextLevel, nextDoor, nextSide);
 		isLocked = false;
 	});
@@ -113,9 +112,9 @@ GameController.prototype.displayDialog = function (dialog) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.startCutScene = function (data) {
+GameController.prototype.startCutScene = function (cutscene) {
 	isLocked = cutscene;
-	cutscene.start(data, function () {
+	cutscene.start(function () {
 		isLocked = null;
 	});
 };
@@ -124,7 +123,7 @@ GameController.prototype.startCutScene = function (data) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(bossIntro()); // FIXME just for testing
 
 	bob.update();
 

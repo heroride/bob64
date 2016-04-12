@@ -58,13 +58,14 @@ TextDisplay.prototype._setDialog = function () {
 	this.textWindow.cls();
 
 	var currentDialog = this.dialog.shift();
-	console.log(currentDialog)
 
 	var who  = currentDialog.who;
 	var text = currentDialog.text;
 
 	switch (who) {
-		case 'bob': this.textWindow.pen(10); break;
+		case 'bob':   this.textWindow.pen(10); break;
+		case 'boss':  this.textWindow.pen(4); break;
+		case 'stump': this.textWindow.pen(3); break;
 		default: this.textWindow.pen(1);
 	}
 

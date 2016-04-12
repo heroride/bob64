@@ -667,8 +667,8 @@ function BriefExtension() {
 
 	// Playing options
 	this._iterations = 1; // Number of times to iterate the playable
-	this._pingpong   = false; // To make the playable go backward on even iterations
-	this._persist    = false; // To keep the playable running instead of completing
+	this._pingpong = false; // To make the playable go backward on even iterations
+	this._persist  = false; // To keep the playable running instead of completing
 }
 
 module.exports = BriefExtension;
@@ -825,98 +825,96 @@ BriefExtension.prototype._complete = function (overflow) {
 	}
 };
 
-
-BriefExtension.prototype._moveTo = function (time, dt, overflow) {
+var epsilon = 1e-6;
+BriefExtension.prototype._moveTo = function (time, dt, playerOverflow) {
 	dt *= this._speed;
 
 	// So many conditions!!
 	// That is why this extension exists
-	if (overflow === undefined) {
-		// Computing overflow and clamping time
-		if (dt !== 0) {
-			if (this._iterations === 1) {
-				// Converting into local time (relative to speed and starting time)
-				this._time = (time - this._startTime) * this._speed;
-				if (dt > 0) {
-					if (this._time >= this._duration) {
-						overflow = this._time - this._duration;
-						dt -= overflow;
-						this._time = this._duration;
-					}
-				} else if (dt < 0) {
-					if (this._time <= 0) {
-						overflow = this._time;
-						dt -= overflow;
-						this._time = 0;
-					}
+	// i.e playables without durations do not need all those options
+
+	// Computing overflow and clamping time
+	var overflow;
+	if (dt !== 0) {
+		if (this._iterations === 1) {
+			// Converting into local time (relative to speed and starting time)
+			this._time = (time - this._startTime) * this._speed;
+			if (dt > 0) {
+				if (this._time >= this._duration) {
+					overflow = this._time - this._duration;
+					// dt -= overflow;
+					this._time = this._duration;
+				} else if (this._time < 0) {
+
 				}
-			} else {
-				time = (time - this._startTime) * this._speed;
-
-				// Iteration at current update
-				var iteration = time / this._duration;
-
-				if (dt > 0) {
-					if (iteration < this._iterations) {
-						// if (this._time !== 0 && Math.ceil(iteration) !== Math.ceil(this._time / this._duration)) {
-						// }
-						this._time = time % this._duration;
-					} else {
-						overflow = (iteration - this._iterations) * this._duration;
-						dt -= overflow;
-						this._time = this._duration * (1 - (Math.ceil(this._iterations) - this._iterations));
-					}
-				} else if (dt < 0) {
-					if (0 < iteration) {
-						// if (this._time !== this._duration && Math.ceil(iteration) !== Math.ceil(this._time / this._duration)) {
-						// }
-						this._time = time % this._duration;
-					} else {
-						overflow = iteration * this._duration;
-						dt -= overflow;
-						this._time = 0;
-					}
+			} else if (dt < 0) {
+				if (this._time <= 0) {
+					overflow = this._time;
+					// dt -= overflow;
+					this._time = 0;
 				}
+			}
+		} else {
+			time = (time - this._startTime) * this._speed;
 
-				if ((this._pingpong === true)) {
+			// Iteration at current update
+			var iteration = time / this._duration;
+			if (dt > 0) {
+				if (0 < iteration && iteration < this._iterations) {
+					this._time = time % this._duration;
+				} else {
+					overflow = (iteration - this._iterations) * this._duration;
+					this._time = this._duration * (1 - (Math.ceil(this._iterations) - this._iterations));
+				}
+			} else if (dt < 0) {
+				if (0 < iteration && iteration < this._iterations) {
+					this._time = time % this._duration;
+				} else {
+					overflow = iteration * this._duration;
+					this._time = 0;
+				}
+			}
+
+			if ((this._pingpong === true)) {
+				if (overflow === undefined) {
+					if ((Math.ceil(iteration) & 1) === 0) {
+						this._time = this._duration - this._time;
+					}
+				} else {
 					if (Math.ceil(this._iterations) === this._iterations) {
-						if (overflow === undefined) {
-							if ((Math.ceil(iteration) & 1) === 0) {
-								this._time = this._duration - this._time;
-							}
-						} else {
-							if ((Math.ceil(iteration) & 1) === 1) {
-								this._time = this._duration - this._time;
-							}
-						}
-					} else {
-						if ((Math.ceil(iteration) & 1) === 0) {
+						if ((Math.ceil(this._iterations) & 1) === 0) {
 							this._time = this._duration - this._time;
 						}
 					}
 				}
 			}
 		}
-	} else {
+	}
+
+	if (playerOverflow !== undefined && overflow === undefined) {
 		// Ensuring that the playable overflows when its player overflows
 		// This conditional is to deal with Murphy's law:
 		// There is one in a billion chance that a player completes while one of his playable
 		// does not complete due to stupid rounding errors
-		if (dt > 0) {
-			overflow = Math.max((time - this._startTime) * this._speed - this._duration * this.iterations, 0);
+		if (dt > 0 && this.duration - this._time < epsilon) {
+			// overflow = Math.max((time - this._startTime) * this._speed - this._duration * this._iterations, overflow);
+			overflow = playerOverflow;
 			this._time = this._duration;
-		} else {
-			overflow = Math.min((time - this._startTime) * this._speed, 0);
+		} else if (dt < 0 && this._time < epsilon) {
+			// overflow = Math.min((time - this._startTime) * this._speed, overflow);
+			overflow = playerOverflow;
 			this._time = 0;
 		}
-
-		dt -= overflow;
 	}
 
 	this._update(dt, overflow);
 
 	if (this._onUpdate !== null) {
-		this._onUpdate(this._time, dt);
+		if (overflow === undefined) {
+			this._onUpdate(this._time, dt);
+		} else {
+			this._onUpdate(this._time, dt - overflow);
+		}
 	}
 
 	if (overflow !== undefined) {
@@ -1587,7 +1585,7 @@ Playable.prototype.delay = function (delay) {
 
 Playable.prototype.start = function (timeOffset) {
 	if (this._player === null) {
-		this._player = TINA._getDefaultTweener();
+		this._player = TINA._startDefaultTweener();
 	}
 
 	if (this._validate() === false) {
@@ -1616,12 +1614,12 @@ Playable.prototype._start = function () {
 
 Playable.prototype.stop = function () {
 	if (this._player === null) {
-		console.warn('[Playable.stop] Cannot stop a playable that is not running');
+		console.warn('[Playable.stop] Trying to stop a playable that was never started.');
 		return;
 	}
 
 	// Stopping playable without performing any additional update nor completing
-	if (this._player._inactivate(this) === false) {
+	if (this._player._remove(this) === false) {
 		// Could not be removed
 		return this;
 	}
@@ -1645,7 +1643,7 @@ Playable.prototype.resume = function () {
 };
 
 Playable.prototype.pause = function () {
-	if (this._player._inactivate(this) === false) {
+	if (this._player._remove(this) === false) {
 		// Could not be paused
 		return this;
 	}
@@ -1672,8 +1670,8 @@ Playable.prototype._moveTo = function (time, dt) {
 Playable.prototype._update   = function () {};
 Playable.prototype._validate = function () {};
 },{}],11:[function(require,module,exports){
-var Playable     = require('./Playable');
-var DoublyList   = require('./DoublyList');
+var Playable   = require('./Playable');
+var DoublyList = require('./DoublyList');
 
 /**
  * @classdesc
@@ -1700,7 +1698,7 @@ function Player() {
 	this._playablesToRemove = new DoublyList();
 
 	// Whether to silence warnings
-	this._silent = false;
+	this._silent = true;
 
 	// Whether to trigger the debugger on warnings
 	this._debug = false;
@@ -1808,7 +1806,6 @@ Player.prototype._handlePlayablesToRemove = function () {
 		// Removing from list of active playables
 		var playable = handle.object;
 		playable._handle = this._activePlayables.removeByReference(handle);
-		playable._player = null;
 	}
 
 	if ((this._activePlayables.length === 0) && (this._inactivePlayables.length === 0)) {
@@ -1836,21 +1833,16 @@ Player.prototype._warn = function (warning) {
 };
 
 Player.prototype.silent = function (silent) {
-	this._silent = silent;
+	this._silent = silent || false;
 	return this;
 };
 
 Player.prototype.debug = function (debug) {
-	this._debug = debug;
+	this._debug = debug || false;
 	return this;
 };
 
 Player.prototype.stop = function () {
-	if (this._player === null) {
-		this._warn('[Player.stop] Cannot stop a player that is not running');
-		return;
-	}
-
 	// Stopping all active playables
 	var handle = this._activePlayables.first; 
 	while (handle !== null) {
@@ -1861,7 +1853,6 @@ Player.prototype.stop = function () {
 	}
 
 	this._handlePlayablesToRemove();
-
 	Playable.prototype.stop.call(this);
 };
 
@@ -1872,6 +1863,11 @@ Player.prototype._activate = function (playable) {
 };
 
 Player.prototype._inactivate = function (playable) {
+	if (playable._handle === null) {
+		this._warn('[Playable.stop] Cannot stop a playable that is not running');
+		return;
+	}
+
 	// O(1)
 	this._activePlayables.removeByReference(playable._handle);
 	playable._handle = this._inactivePlayables.addBack(playable);
@@ -1898,7 +1894,7 @@ Player.prototype._updatePlayableList = function (dt) {
 		handle = handle.next;
 
 		// Starting if player time within playable bounds
-		// if (playable._isTimeWithin(this._time)) {
+		// console.log('Should playable be playing?', playable._startTime, time0, time1, dt)
 		if (playable._overlaps(time0, time1)) {
 			this._activate(playable);
 			playable._start();
@@ -1909,7 +1905,11 @@ Player.prototype._updatePlayableList = function (dt) {
 Player.prototype._update = function (dt, overflow) {
 	this._updatePlayableList(dt);
 	for (var handle = this._activePlayables.first; handle !== null; handle = handle.next) {
-		handle.object._moveTo(this._time, dt, overflow);
+		if (overflow === undefined) {
+			handle.object._moveTo(this._time, dt);
+		} else {
+			handle.object._moveTo(this._time, dt, overflow);
+		}
 	}
 };
 
@@ -2443,6 +2443,8 @@ Sequence.prototype._onPlayableChanged = Sequence.prototype._reconstruct;
 },{"./Delay":7,"./DoublyList":8,"./Timeline":16}],14:[function(require,module,exports){
 (function (global){
 
+var DoublyList = require('./DoublyList');
+
 /**
  *
  * @module TINA
@@ -2468,7 +2470,7 @@ if (typeof(window) !== 'undefined') {
 	root = this;
 }
 
-// Method to trigger automatic update of TINA
+// Method to trigger automatic updates
 var requestAnimFrame = (function(){
 	return root.requestAnimationFrame    || 
 		root.webkitRequestAnimationFrame || 
@@ -2484,7 +2486,16 @@ var requestAnimFrame = (function(){
 var clock = root.performance || Date;
 
 var TINA = {
-	_tweeners: [],
+	// List of active tweeners handled by TINA
+	_activeTweeners: new DoublyList(),
+
+	// List of inactive tweeners handled by TINA
+	_inactiveTweeners: new DoublyList(),
+
+	// List of tweeners that are not handled by this player anymore and are waiting to be removed
+	_tweenersToRemove: new DoublyList(),
+
+	// _tweeners: [],
 
 	_defaultTweener: null,
 
@@ -2544,13 +2555,27 @@ var TINA = {
 			this._time = now;
 		}
 
-		// Making a copy of the tweener array
-		// to avoid funky stuff happening
-		// due to addition or removal of tweeners
-		// while iterating them
-		var runningTweeners = this._tweeners.slice(0);
-		for (var t = 0; t < runningTweeners.length; t += 1) {
-			runningTweeners[t]._moveTo(this._time, dt);
+		// Removing any tweener that is requested to be removed
+		while (this._tweenersToRemove.length > 0) {
+			// Removing from list of tweeners to remove
+			var tweenerToRemove = this._tweenersToRemove.pop();
+
+			// Removing from list of active tweeners
+			tweenerToRemove._handle = this._activeTweeners.removeByReference(tweenerToRemove._handle);
+		}
+
+		// Activating any inactive tweener
+		while (this._inactiveTweeners.length > 0) {
+			// Removing from list of inactive tweeners
+			var tweenerToActivate = this._inactiveTweeners.pop();
+
+			// Adding to list of active tweeners
+			tweenerToActivate._handle = this._activeTweeners.addBack(tweenerToActivate);
+			tweenerToActivate._start();
+		}
+
+		for (var handle = this._activeTweeners.first; handle !== null; handle = handle.next) {
+			handle.object._moveTo(this._time, dt);
 		}
 
 		if (this._onUpdate !== null) {
@@ -2579,8 +2604,9 @@ var TINA = {
 			this._onStart();
 		}
 
-		for (var t = 0; t < this._tweeners.length; t += 1) {
-			this._tweeners[t]._start();
+		while (this._inactiveTweeners.length > 0) {
+			var handle = this._inactiveTweeners.first;
+			this._activate(handle.object);
 		}
 
 		return this;
@@ -2591,14 +2617,10 @@ var TINA = {
 			return;
 		}
 
-		var runningTweeners = this._tweeners.slice(0);
-		for (var t = 0; t < runningTweeners.length; t += 1) {
-			runningTweeners[t].stop();
+		while (this._activePlayables.length > 0) {
+			var handle = this._activePlayables.first;
+			handle.object.stop();
 		}
-
-		// Stopping the tweeners have the effect of automatically removing them from TINA
-		// In this case we want to keep them attached to TINA
-		this._tweeners = runningTweeners;
 
 		if (this._onStop !== null) {
 			this._onStop();
@@ -2607,7 +2629,7 @@ var TINA = {
 		return this;
 	},
 
-	// internal start method, called by start and resume
+	// Internal start method, called by start and resume
 	_startAutomaticUpdate: function () {
 		if (this._running === true) {
 			console.warn('[TINA.start] TINA is already running');
@@ -2646,8 +2668,8 @@ var TINA = {
 			return;
 		}
 
-		for (var t = 0; t < this._tweeners.length; t += 1) {
-			this._tweeners[t]._pause();
+		for (var handle = this._activeTweeners.first; handle !== null; handle = handle.next) {
+			handle.object._pause();
 		}
 
 		if (this._onPause !== null) {
@@ -2665,8 +2687,8 @@ var TINA = {
 			this._onResume();
 		}
 
-		for (var t = 0; t < this._tweeners.length; t += 1) {
-			this._tweeners[t]._resume();
+		for (var handle = this._activeTweeners.first; handle !== null; handle = handle.next) {
+			handle.object._resume();
 		}
 
 		return this;
@@ -2737,16 +2759,6 @@ var TINA = {
 		return this;
 	},
 
-	setDefaultTweener: function (tweener) {
-		this._defaultTweener = tweener;
-		this._tweeners.push(this._defaultTweener);
-		return this;
-	},
-
-	getDefaultTweener: function () {
-		return this._defaultTweener;
-	},
-
 	_add: function (tweener) {
 		// A tweener is starting
 		if (this._running === false) {
@@ -2754,42 +2766,85 @@ var TINA = {
 			this.start();
 		}
 
-		this._tweeners.push(tweener);
+		if (tweener._handle === null) {
+			// Tweener can be added
+			tweener._handle = this._inactiveTweeners.add(tweener);
+			tweener._player = this;
+			return;
+		}
+
+		// Tweener is already handled
+		if (tweener._handle.container === this._tweenersToRemove) {
+			// Playable was being removed, removing from playables to remove
+			tweener._handle = this._tweenersToRemove.removeByReference(tweener._handle);
+			return;
+		}
 	},
 
 	add: function (tweener) {
-		this._tweeners.push(tweener);
+		this._add(tweener);
 		return this;
 	},
 
 	_inactivate: function (tweener) {
-		var tweenerIdx = this._tweeners.indexOf(tweener);
-		if (tweenerIdx !== -1) {
-			this._tweeners.splice(tweenerIdx, 1);
+		if (tweener._handle !== null) {
+			this._activePlayables.removeByReference(tweener._handle);
+		}
+
+		tweener._handle = this._inactivePlayables.addBack(tweener);
+	},
+
+	_remove: function (tweener) {
+		if (tweener._handle === null) {
+			return;
+		}
+
+		// Playable is handled, either by this player or by another one
+		if (tweener._handle.container === this._activeTweeners) {
+			// Tweener was active, adding to remove list
+			tweener._handle = this._tweenersToRemove.add(tweener._handle);
+			return;
+		}
+
+		if (tweener._handle.container === this._inactiveTweeners) {
+			// Tweener was inactive, removing from inactive tweeners
+			tweener._handle = this._inactiveTweeners.removeByReference(tweener._handle);
+			return;
 		}
 	},
 
 	remove: function (tweener) {
-		this._inactivate(tweener);
+		this._remove(tweener);
 		return this;
 	},
 
-	_getDefaultTweener: function () {
+	setDefaultTweener: function (tweener) {
+		this._defaultTweener = tweener;
+		return this;
+	},
+
+	getDefaultTweener: function () {
 		if (this._defaultTweener === null) {
-			// If a default tweener is required but non exist
-			// Then it is started in addition to being created
+			// If a default tweener is required but none exist
+			// Then we create one
 			var DefaultTweener = this.Timer;
-			this._defaultTweener = new DefaultTweener().start();
+			this._defaultTweener = new DefaultTweener();
 		}
 
 		return this._defaultTweener;
+	},
+
+	_startDefaultTweener: function () {
+		var defaultTweener = this.getDefaultTweener();
+		this._add(defaultTweener);
+		return defaultTweener;
 	}
 };
 
 module.exports = root.TINA = TINA;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],15:[function(require,module,exports){
+},{"./DoublyList":8}],15:[function(require,module,exports){
 var Tweener = require('./Tweener');
 
 /**
@@ -2809,7 +2864,6 @@ function Ticker(tupt) {
 	// Time units per tick (tupt)
 	// Every second, 'tupt' time units elapse
 	this.tupt = tupt || 1;
-	this._nbTicks = 0;
 
 }
 Ticker.prototype = Object.create(Tweener.prototype);
@@ -2817,8 +2871,10 @@ Ticker.prototype.constructor = Ticker;
 module.exports = Ticker;
 
 Ticker.prototype._moveTo = function (time, dt) {
+	this._time += this.tupt;
+
+	// overwriting elapsed time since previous iteration
 	dt = this.tupt;
-	this._time = this.tupt * (this._nbTicks++);
 
 	this._update(dt);
 
@@ -2876,7 +2932,6 @@ Timeline.prototype.add = function (playable, startTime) {
 
 	return this;
 };
-
 },{"./BriefPlayer":6}],17:[function(require,module,exports){
 var Tweener = require('./Tweener');
 
@@ -4252,14 +4307,9 @@ Texture.prototype.sprite = function (sprite, x, y, flipH, flipV, rot) {
 Texture.prototype.draw = function (img, x, y, flipH, flipV) {
 	if (img._isMap) img = img.texture.canvas;
 	if (img._isTexture) img = img.canvas;
+	var ctx = this.ctx;
 	var px = ~~Math.round((x || 0) - this.camera.x);
 	var py = ~~Math.round((y || 0) - this.camera.y);
-	if (!flipH && !flipV) {
-		// fast version
-		this.ctx.drawImage(img, px, py);
-		return this;
-	}
-	var ctx = this.ctx;
 	ctx.save();
 	if (flipH) {
 		ctx.scale(-1, 1);
@@ -4690,6 +4740,8 @@ AudioChannel.prototype.playLoopSound = function (soundId, volume, pan, pitch) {
 		return;
 	}
 
+	currentSound = null;
+
 	// check if requested sound is already scheduled to play next
 	if (this.nextLoop && this.nextLoop.id === soundId) return;
 
@@ -4700,17 +4752,25 @@ AudioChannel.prototype.playLoopSound = function (soundId, volume, pan, pitch) {
 		if (sound.stopping) return; // callback is already scheduled
 		sound.stop(function () {
 			audioManager.freeSound(sound); // TODO: add an option to keep file in memory
+			sound = null;
 			return cb && cb();
 		});
 	}
 
-	function playNextSound() {
+	function _playNextSound() {
 		var sound = self.loopSound = self.nextLoop;
 		self.nextLoop = null;
 		if (!sound) return;
 		sound.setLoop(true);
 		sound.fade = defaultFade;
 		sound.play(volume * self.volume, pan, pitch); // load and play
+	}
+
+	function playNextSound() {
+		// remove reference to current loop sound to ease optimistic garbabe collection
+		self.loopSound = null;
+		// force loading to happen at next tick in order to let garbage collector to release previous audio.
+		window.setTimeout(_playNextSound, 0);
 	}
 
 	if (crossFading) {
@@ -5349,9 +5409,17 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":50}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":51}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
+
+// setValueAtTime, exponentialRampToValueAtTime and linearRampToValueAtTime thrown an exception if
+// provided value is less than or equal to 0.
+// we use MIN_VALUE instead of 0 when calling these functions
+// see:
+// http://webaudio.github.io/web-audio-api/#widl-AudioParam-exponentialRampToValueAtTime-void-float-value-double-endTime
+// http://stackoverflow.com/questions/29819382/how-does-the-audioparam-exponentialramptovalueattime-work
+var MIN_VALUE = 0.000001;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Audio wrapper using AudioBufferSourceNode
@@ -5421,6 +5489,12 @@ SoundBuffered.prototype._destroyAudioNodes = function () {
 	gainNode.disconnect(panNode);
 	panNode.disconnect(audioContext.destination);
 
+	if (this.source) {
+		this.source.disconnect(gainNode);
+		this.source.onended = null;
+		this.source = null;
+	}
+
 	this.sourceConnector = null;
 	this.gain            = null;
 	this.panNode         = null;
@@ -5462,7 +5536,15 @@ SoundBuffered.prototype.init = function () {
 SoundBuffered.prototype.setVolume = function (value) {
 	this.volume = value;
 	if (!this.playing) return;
-	this.gain.setTargetAtTime(value, this.audioContext.currentTime, this.fade);
+	if (!this.fade) {
+		this.gain.value = value;
+		return;
+	}
+	if (value <= 0) value = MIN_VALUE;
+	var currentTime = this.audioContext.currentTime;
+	this.gain.cancelScheduledValues(currentTime);
+	this.gain.setValueAtTime(this.gain.value || MIN_VALUE, currentTime);
+	this.gain.linearRampToValueAtTime(value, currentTime + this.fade);
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -5503,8 +5585,14 @@ SoundBuffered.prototype.setPitch = function (pitch, portamento) {
 SoundBuffered.prototype._setPlaybackRate = function (portamento) {
 	if (!this.source) return;
 	var rate = Math.pow(2, (this._playPitch + this.pitch) / 12);
-	portamento = portamento || 0;
-	this.source.playbackRate.setTargetAtTime(rate, this.audioContext.currentTime, portamento);
+	if (!portamento) {
+		this.source.playbackRate.value = rate;
+		return;
+	}
+	var currentTime = this.audioContext.currentTime;
+	this.source.playbackRate.cancelScheduledValues(currentTime);
+	this.source.playbackRate.setValueAtTime(this.source.playbackRate.value || MIN_VALUE, currentTime);
+	this.source.playbackRate.linearRampToValueAtTime(rate, currentTime + portamento);
 };
 
 
@@ -5580,7 +5668,6 @@ SoundBuffered.prototype.unload = function () {
 			this._stopAndClear();
 		}
 		this.buffer = null;
-		// this.gain.setTargetAtTime(0, this.audioContext.currentTime, 0);
 		if (this.source) {
 			this.source.onended = null;
 			this.source.stop(0);
@@ -5612,7 +5699,15 @@ SoundBuffered.prototype._play = function (pitch) {
 	}
 
 	this.playing = true;
-	this.gain.setTargetAtTime(this.volume, this.audioContext.currentTime, this.fade);
+
+	var currentTime = this.audioContext.currentTime;
+	this.gain.cancelScheduledValues(currentTime);
+	if (this.fade) {
+		this.gain.setValueAtTime(this.gain.value || MIN_VALUE, currentTime);
+		this.gain.linearRampToValueAtTime(this.volume || MIN_VALUE, currentTime + this.fade);
+	} else {
+		this.gain.value = this.volume;
+	}
 
 	// if sound is still fading out, clear all onStop callback
 	if (this._fadeTimeout) {
@@ -5623,6 +5718,8 @@ SoundBuffered.prototype._play = function (pitch) {
 		this._fadeTimeout = null;
 		return;
 	}
+
+	if (this.source) this.source.disconnect(this.sourceConnector);
 
 	var sourceNode = this.source = this.audioContext.createBufferSource();
 	sourceNode.connect(this.sourceConnector);
@@ -5668,7 +5765,6 @@ SoundBuffered.prototype._stopAndClear = function () {
  * @param {Function} [cb] - optional callback function
  */
 SoundBuffered.prototype.stop = function (cb) {
-	var fadeOutRatio = this.audioManager.settings.fadeOutRatio;
 	if (!this.playing && !this.stopping) return cb && cb();
 	this._playTriggered = 0;
 	this.stopping = true;
@@ -5681,7 +5777,10 @@ SoundBuffered.prototype.stop = function (cb) {
 
 	if (this.fade) {
 		var self = this;
-		this.gain.setTargetAtTime(0, this.audioContext.currentTime, this.fade * fadeOutRatio);
+		var currentTime = this.audioContext.currentTime;
+		this.gain.cancelScheduledValues(currentTime);
+		this.gain.setValueAtTime(this.gain.value || MIN_VALUE, currentTime);
+		this.gain.linearRampToValueAtTime(MIN_VALUE, currentTime + this.fade);
 		this._fadeTimeout = window.setTimeout(function onFadeEnd() {
 			self._fadeTimeout = null;
 			self._stopAndClear();
@@ -5693,7 +5792,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":50}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":51}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -5808,7 +5907,6 @@ function AudioManager(channels) {
 		maxUsedMemory:  300,  // seconds
 		defaultFade:    2,    // seconds
 		maxPlayLatency: 1000, // milliseconds
-		fadeOutRatio:   0.4,
 		crossFading:    false,
 		getFileUri:     function getFileUri(audioPath, id) { return audioPath + id + '.mp3'; }
 	};
@@ -6450,7 +6548,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":46,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":47,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -6873,62 +6971,120 @@ Bob.prototype.hit = function (attacker) {
 	this.sy = attacker.y < this.y ? 2 : -3;
 };
 },{"./AABBcollision.js":37,"./Level.js":43}],39:[function(require,module,exports){
-var TextDisplay = require('./TextDisplay.js');
+var TextDisplay    = require('./TextDisplay.js');
+var FadeTransition = require('./FadeTransition.js');
+
+var textDisplay = new TextDisplay();
+var fader       = new FadeTransition();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function CutScene() {
-	this.onFinishCallback = null;
-	this.displayingText = false;
+	this._backgroundColor  = 0; // to store level BG color
+	this._onFinishCallback = null;
+	this._isDisplayingText = false;
+	this._isFading         = false;
+	this._animation        = null;
+
+	this._actions = [];
 }
 
 module.exports = CutScene;
 
-CutScene.prototype.textDisplay = new TextDisplay();
-
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-CutScene.prototype.start = function (data, cb) {
-	this.onFinishCallback = cb;
-
-	// TODO
-	paper(0);
-	cls();
-	var background = getMap('bossCutScene');
-	draw(background);
-	var dialog = [
-		{ "text": "..." },
-		{ "who": "bob", "text": "Oh boy,\nthe chainsaw I ordered finally came!\nIt’s only been a whole YEAR,\njeez..." }
-	]
-	this.textDisplay.start(dialog);
-	this.displayingText = true;
-
-	///------------------
-
+CutScene.prototype.start = function (cb) {
+	this._onFinishCallback = cb;
+	this._backgroundColor = $screen._paper; // FIXME this is a bit hacky
 	return this;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-/** return true if it needs to continue, or false when it ends */
-CutScene.prototype.update = function () {
-	camera(0, 0);
-
-	// ------------------
-	// TODO
-	if (this.displayingText) {
-		this.displayingText = this.textDisplay.update();
-	} else {
-		if (btnp.A) {
-			this.onFinishCallback && this.onFinishCallback();
-			this.onFinishCallback = null;
-			return false;
-		}
-	}
-
-	///------------------
-
-	return true;
+CutScene.prototype.enqueue = function (fn) {
+	this._actions.push(fn);
+	return this;
 };
 
-},{"./TextDisplay.js":45}],40:[function(require,module,exports){
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype.addDialog = function (dialog) {
+	this._actions.push(function () {
+		this._displayDialog(dialog);
+	});
+	return this;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype.addFade = function () {
+	this._actions.push(function () {
+		this._startFade();
+	});
+	return this;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype.addDelay = function (delay) {
+	delay = delay || 1;
+	var counter = ~~(delay * 60);
+	this.addAnimation(function () {
+		return (counter-- <= 0);
+	});
+	return this;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+/** 
+ * @param {Function} animation - a function that needs to be called every frame until its returns true
+ */
+CutScene.prototype.addAnimation = function (animation) {
+	this._actions.push(function () {
+		this._animation = animation;
+	});
+	return this;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype.update = function () {
+	camera(0, 0);
+	if (this._isDisplayingText) return textDisplay.update();
+	if (this._isFading) return fader.update();
+	if (this._animation) {
+		if (this._animation()) this._animation = null;
+		return;
+	}
+
+	if (this._actions.length) {
+		var nextAction = this._actions.shift();
+		if (typeof nextAction === 'function') nextAction.apply(this);
+		return;
+	}
+
+	this._finish();
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype._finish = function () {
+	this._onFinishCallback && this._onFinishCallback();
+	this._onFinishCallback = null;
+	paper(this._backgroundColor);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype._displayDialog = function (dialog) {
+	var self = this;
+	this._isDisplayingText = true;
+	textDisplay.start(dialog, function () {
+		self._isDisplayingText = false;
+	});
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype._startFade = function (options) {
+	var self = this;
+	this._isFading = true;
+	fader.start(options, function () {
+		self._isFading = false;
+	});
+};
+
+},{"./FadeTransition.js":41,"./TextDisplay.js":45}],40:[function(require,module,exports){
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 
@@ -7085,7 +7241,7 @@ function FadeTransition() {
 module.exports = FadeTransition;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-FadeTransition.prototype.start = function (cb) {
+FadeTransition.prototype.start = function (options, cb) {
 	this.onFinishCallback = cb;
 	this.transitionCount = -30;
 	return this;
@@ -7111,7 +7267,7 @@ var bob            = require('./Bob.js');
 var TextDisplay    = require('./TextDisplay.js');
 var Entity         = require('./Entity.js');
 var FadeTransition = require('./FadeTransition.js');
-var CutScene       = require('./CutScene.js');
+var bossIntro      = require('./cutscenes/bossIntro.js');
 
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -7126,7 +7282,6 @@ var nextLevel, nextDoor, nextSide;
 var isLocked    = null;
 var fader       = new FadeTransition();
 var textDisplay = new TextDisplay();
-var cutscene    = new CutScene();
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function GameController() {
@@ -7188,7 +7343,7 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 GameController.prototype.startFade = function () {
 	isLocked = fader;
 	var self = this;
-	fader.start(function () {
+	fader.start(null, function () {
 		self.loadLevel(nextLevel, nextDoor, nextSide);
 		isLocked = false;
 	});
@@ -7221,9 +7376,9 @@ GameController.prototype.displayDialog = function (dialog) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-GameController.prototype.startCutScene = function (data) {
+GameController.prototype.startCutScene = function (cutscene) {
 	isLocked = cutscene;
-	cutscene.start(data, function () {
+	cutscene.start(function () {
 		isLocked = null;
 	});
 };
@@ -7232,7 +7387,7 @@ GameController.prototype.startCutScene = function (data) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(bossIntro()); // FIXME just for testing
 
 	bob.update();
 
@@ -7248,7 +7403,7 @@ GameController.prototype.update = function () {
 	bob.draw();
 };
 
-},{"./Bob.js":38,"./CutScene.js":39,"./Entity.js":40,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":45}],43:[function(require,module,exports){
+},{"./Bob.js":38,"./Entity.js":40,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":45,"./cutscenes/bossIntro.js":46}],43:[function(require,module,exports){
 var Onion = require('./Onion.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -7614,13 +7769,14 @@ TextDisplay.prototype._setDialog = function () {
 	this.textWindow.cls();
 
 	var currentDialog = this.dialog.shift();
-	console.log(currentDialog)
 
 	var who  = currentDialog.who;
 	var text = currentDialog.text;
 
 	switch (who) {
-		case 'bob': this.textWindow.pen(10); break;
+		case 'bob':   this.textWindow.pen(10); break;
+		case 'boss':  this.textWindow.pen(4); break;
+		case 'stump': this.textWindow.pen(3); break;
 		default: this.textWindow.pen(1);
 	}
 
@@ -7659,6 +7815,71 @@ TextDisplay.prototype._setDialog = function () {
 };
 
 },{}],46:[function(require,module,exports){
+var CutScene = require('../CutScene.js');
+
+function bossIntro() {
+
+	//------------------------------------------------------------
+	// create an empty cutscene
+	var cutscene = new CutScene();
+
+	//------------------------------------------------------------
+	// add a fading transition animation
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// enqueue a function: this one clear screen and draw the boss room
+	var bossRoom = getMap('bossCutScene');
+	cutscene.enqueue(function () {
+		camera(0, 0);   // camera needs to be reset before drawing scene
+		paper(0).cls(); // set background color to 0 (black) and clear screen
+		draw(bossRoom); // draw boss room
+		// TODO draw the boss
+	});
+
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(0.2);
+
+	//------------------------------------------------------------
+	// add an animation.
+	// an animation is a function that will be called every frame until its returns true
+	var onionX = -7;
+	var onionFrame = 0;
+	cutscene.addAnimation(function () {
+		onionX += 0.5;
+
+		// to make the onion guy walk animation. TODO: create an animator to abstract this
+		onionFrame += 0.2;
+		if (onionFrame > 4) onionFrame = 0;
+		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
+
+		// draw the scene
+		cls();
+		draw(bossRoom);
+		// TODO draw the boss
+		draw(onionImage, onionX, 40);
+		if (onionX < 10) return false; // continue the animation
+
+		return true; // ends the animation
+	});
+
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.bossIntro);
+
+	//------------------------------------------------------------
+	// add a last fade before going back to the game
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// return the cutscene	
+	return cutscene;
+}
+
+module.exports = bossIntro;
+
+},{"../CutScene.js":39}],47:[function(require,module,exports){
 var DEBUG = true;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7731,7 +7952,7 @@ exports.update = function () {
 	gameController.update();
 };
 
-},{"./Bob.js":38,"./GameController.js":42}],47:[function(require,module,exports){
+},{"./Bob.js":38,"./GameController.js":42}],48:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -7756,7 +7977,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -7849,14 +8070,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8446,4 +8667,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":49,"_process":48,"inherits":47}]},{},[35]);
+},{"./support/isBuffer":50,"_process":49,"inherits":48}]},{},[35]);

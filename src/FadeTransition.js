@@ -10,7 +10,7 @@ function FadeTransition() {
 module.exports = FadeTransition;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-FadeTransition.prototype.start = function (cb) {
+FadeTransition.prototype.start = function (options, cb) {
 	this.onFinishCallback = cb;
 	this.transitionCount = -30;
 	return this;
