@@ -4307,9 +4307,14 @@ Texture.prototype.sprite = function (sprite, x, y, flipH, flipV, rot) {
 Texture.prototype.draw = function (img, x, y, flipH, flipV) {
 	if (img._isMap) img = img.texture.canvas;
 	if (img._isTexture) img = img.canvas;
-	var ctx = this.ctx;
 	var px = ~~Math.round((x || 0) - this.camera.x);
 	var py = ~~Math.round((y || 0) - this.camera.y);
+	if (!flipH && !flipV) {
+		// fast version
+		this.ctx.drawImage(img, px, py);
+		return this;
+	}
+	var ctx = this.ctx;
 	ctx.save();
 	if (flipH) {
 		ctx.scale(-1, 1);
@@ -7866,7 +7871,7 @@ function bossIntro() {
 
 	//------------------------------------------------------------
 	// display a dialog
-	cutscene.addDialog(assets.dialogs.bossIntro);
+	cutscene.addDialog(assets.dialogs.secondFairy);
 
 	//------------------------------------------------------------
 	// add a last fade before going back to the game
