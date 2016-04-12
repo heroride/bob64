@@ -1,4661 +1,9254 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 function EventEmitter() {
+
 	this._events = {};
+
 };
+
+
 
 module.exports = EventEmitter;
 
+
+
 EventEmitter.listenerCount = function (emitter, evt) {
+
 	var handlers = emitter._events[evt];
+
 	return handlers ? handlers.length : 0;
+
 };
+
+
 
 EventEmitter.prototype.on = function (evt, fn) {
+
 	if (typeof fn !== 'function') {
+
 		throw new TypeError('Tried to register non-function as event handler for event: ' + evt);
+
 	}
+
+
 
 	// we emit first, because if evt is "newListener" it would go recursive
+
 	this.emit('newListener', evt, fn);
 
+
+
 	var allHandlers = this._events;
+
 	var evtHandlers = allHandlers[evt];
+
 	if (evtHandlers === undefined) {
+
 		// first event handler for this event type
+
 		allHandlers[evt] = [fn];
+
 	} else {
+
 		evtHandlers.push(fn);
+
 	}
 
+
+
 	return this;
+
 };
+
+
 
 EventEmitter.prototype.addListener = EventEmitter.prototype.on;
 
+
+
 EventEmitter.prototype.once = function (evt, fn) {
+
 	if (!fn.once) {
+
 		fn.once = 1;
+
 	} else {
+
 		fn.once += 1;
+
 	}
+
+
 
 	return this.on(evt, fn);
+
 };
+
+
 
 EventEmitter.prototype.setMaxListeners = function () {
+
 	console.warn('Method setMaxListeners not supported, there is no limit to the number of listeners');
+
 };
+
+
 
 EventEmitter.prototype.removeListener = function (evt, handler) {
+
 	// like node.js, we only remove a single listener at a time, even if it occurs multiple times
 
+
+
 	var handlers = this._events[evt];
+
 	if (handlers !== undefined) {
+
 		var index = handlers.indexOf(handler);
+
 		if (index !== -1) {
+
 			handlers.splice(index, 1);
 
+
+
 			if (handlers.length === 0) {
+
 				delete this._events[evt];
+
 			}
 
+
+
 			this.emit('removeListener', evt, handler);
+
 		}
+
 	}
+
 	return this;
+
 };
+
+
 
 EventEmitter.prototype.removeAllListeners = function (evt) {
+
 	if (evt) {
+
 		delete this._events[evt];
+
 	} else {
+
 		this._events = {};
+
 	}
+
 	return this;
+
 };
+
+
 
 EventEmitter.prototype.hasListeners = function (evt) {
+
 	return this._events[evt] !== undefined;
+
 };
+
+
 
 EventEmitter.prototype.listeners = function (evt) {
+
 	var handlers = this._events[evt];
+
 	if (handlers !== undefined) {
+
 		return handlers.slice();
+
 	}
+
+
 
 	return [];
+
 };
 
+
+
 EventEmitter.prototype.emit = function (evt) {
+
 	var handlers = this._events[evt];
+
 	if (handlers === undefined) {
+
 		return false;
+
 	}
 
+
+
 	// copy handlers into a new array, so that handler removal doesn't affect array length
+
 	handlers = handlers.slice();
+
+
 
 	var hadListener = false;
 
+
+
 	// copy all arguments, but skip the first (the event name)
+
 	var args = [];
+
 	for (var i = 1; i < arguments.length; i++) {
+
 		args.push(arguments[i]);
+
 	}
+
+
 
 	for (var i = 0, len = handlers.length; i < len; i++) {
+
 		var handler = handlers[i];
 
+
+
 		handler.apply(this, args);
+
 		hadListener = true;
 
+
+
 		if (handler.once) {
+
 			if (handler.once > 1) {
+
 				handler.once--;
+
 			} else {
+
 				delete handler.once;
+
 			}
 
+
+
 			this.removeListener(evt, handler);
+
 		}
+
 	}
 
+
+
 	return hadListener;
+
 };
 },{}],2:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /** Map
+
  * @author Cedric Stoquer
+
  */
 
+
+
 var settings = require('../../settings.json');
+
 var Texture  = require('Texture');
 
+
+
 var SPRITE_WIDTH  = settings.spriteSize[0];
+
 var SPRITE_HEIGHT = settings.spriteSize[1];
 
 
+
+
+
 var _mapById = {};
+
 window.getMap = function (name) {
+
 	return _mapById[name];
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 function MapItem(x, y, sprite, flipH, flipV, flipR, flagA, flagB) {
+
 	this.x      = ~~x;
+
 	this.y      = ~~y;
+
 	this.sprite = ~~sprite;
+
 	this.flipH  = !!flipH;
+
 	this.flipV  = !!flipV;
+
 	this.flipR  = !!flipR;
+
 	this.flagA  = !!flagA;
+
 	this.flagB  = !!flagB;
+
 }
+
+
 
 MapItem.prototype.draw = function (texture) {
+
 	texture.sprite(this.sprite, this.x * SPRITE_WIDTH, this.y * SPRITE_HEIGHT, this.flipH, this.flipV, this.flipR);
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 function Map(width, height) {
+
 	this._name  = '';
+
 	this.width  = 0;
+
 	this.height = 0;
+
 	this.items  = [];
+
 	this.texture = new Texture(width * SPRITE_WIDTH, height * SPRITE_HEIGHT);
+
 	this._spritesheetPath = '';
 
+
+
 	if (width && height) this._init(width, height);
+
 }
+
 module.exports = Map;
+
+
 
 Map.prototype._isMap = true;
 
+
+
 Object.defineProperty(Map.prototype, 'name', {
+
 	get: function () { return this._name; },
+
 	set: function (name) {
+
 		if (this._name && _mapById[this._name] && _mapById[this._name] === this) delete _mapById[this._name];
+
 		this._name = name;
+
 		if (name && !_mapById[name]) _mapById[name] = this;
+
 	}
+
 });
 
+
+
 Map.prototype._init = function (width, height) {
+
 	this.texture.resize(width * SPRITE_WIDTH, height * SPRITE_HEIGHT);
+
 	this.width  = width;
+
 	this.height = height;
+
 	this.items  = [];
+
 	for (var x = 0; x < width; x++) {
+
 		this.items.push([]);
+
 		for (var y = 0; y < height; y++) {
+
 			this.items[x][y] = null;
+
 		}
+
 	}
+
 };
+
+
 
 Map.prototype.resize = function (width, height) {
+
 	var items = this.items;
+
 	var w = Math.min(this.width,  width);
+
 	var h = Math.min(this.height, height);
+
 	this.texture.resize(width * SPRITE_WIDTH, height * SPRITE_HEIGHT);
+
 	this._init(width, height);
+
 	for (var x = 0; x < w; x++) {
+
 	for (var y = 0; y < h; y++) {
+
 		this.items[x][y] = items[x][y];
+
 	}}
+
 	this.redraw();
+
 	return this;
+
 };
+
+
 
 Map.prototype.set = function (x, y, sprite, flipH, flipV, flipR, flagA, flagB) {
+
 	if (sprite === null || sprite === undefined) return this.remove(x, y);
+
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+
 	var item = this.items[x][y] = new MapItem(x, y, sprite, flipH, flipV, flipR, flagA, flagB);
+
 	this.texture.ctx.clearRect(x * SPRITE_WIDTH, y * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT);
+
 	item.draw(this.texture);
+
 	return this;
+
 };
+
+
 
 Map.prototype.remove = function (x, y) {
+
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+
 	this.items[x][y] = null;
+
 	this.texture.ctx.clearRect(x * SPRITE_WIDTH, y * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT);
+
 	return this;
+
 };
+
+
 
 Map.prototype.get = function (x, y) {
+
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+
 	return this.items[x][y];
+
 };
+
+
 
 Map.prototype.redraw = function () {
+
 	this.texture.clear();
+
 	for (var x = 0; x < this.width;  x++) {
+
 	for (var y = 0; y < this.height; y++) {
+
 		this.items[x][y] && this.items[x][y].draw(this.texture);
+
 	}}
+
 	return this;
+
 };
+
+
 
 Map.prototype.draw = function (x, y) {
+
 	draw(this.texture, x, y);
+
 };
+
+
 
 Map.prototype.setSpritesheet = function (spritesheet) {
+
 	this._spritesheetPath = spritesheet && spritesheet.path || '';
+
 	this.texture.setSpritesheet(spritesheet);
+
 	this.redraw();
+
 	return this;
+
 };
+
+
 
 Map.prototype._setSpritesheetPath = function (path) {
+
 	this._spritesheetPath = path || '';
+
 	if (!path) return this.setSpritesheet();
+
 	path = path.split('/');
+
 	fileId = path.pop();
+
 	var dir = assets;
+
 	for (var i = 0; i < path.length; i++) {
+
 		dir = dir[path[i]];
+
 		if (!dir) return console.warn('Could not find spritesheet', path); // failed to find spritesheet.
+
 	}
+
 	var img = dir[fileId];
+
 	if (img && img instanceof Image) this.setSpritesheet(img);
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 var encode, decode;
 
+
+
 (function () {
+
 	var BASE = "#$%&'()*+,-~/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}. !";
+
 	var INVERSE = {};
+
 	for (var i = 0; i < BASE.length; i++) INVERSE[BASE[i]] = i;
 
+
+
 	var LENGTH = BASE.length;
+
 	var NULL = LENGTH * LENGTH - 1;
+
 	var DUPL = Math.pow(2, 13);
+
 	var MAX_DUPL = NULL - DUPL - 1;
 
+
+
 	function getCode(value) {
+
 		var be = ~~(value / LENGTH);
+
 		var le = value % LENGTH;
+
 		return BASE[be] + BASE[le];
+
 	}
+
+
 
 	encode = function (arr) {
+
 		str = '';
+
 		count = 0;
+
 		for (var i = 0; i < arr.length; i++) {
+
 			var value = arr[i];
+
 			if (value === arr[i + 1] && ++count < MAX_DUPL) continue;
+
 			if (value === null) value = NULL;
+
 			str += getCode(value);
+
 			if (count === MAX_DUPL) count--;
+
 			if (count !== 0) str += getCode(DUPL + count);
+
 			count = 0;
+
 		}
+
+
 
 		if (count === MAX_DUPL) count--;
+
 		if (count !== 0) str += getCode(DUPL + count);
+
 		return str;
+
 	}
+
+
 
 	decode = function (str) {
+
 		arr = [];
+
 		for (var i = 0; i < str.length;) {
+
 			var be = str[i++];
+
 			var le = str[i++];
+
 			var value = INVERSE[be] * LENGTH + INVERSE[le];
+
 			if (value === NULL) {
+
 				arr.push(null);
+
 			} else if (value > DUPL) {
+
 				var count = value - DUPL;
+
 				var duplicate = arr[arr.length - 1];
 
+
+
 				for (var j = 0; j < count; j++) {
+
 					arr.push(duplicate);
+
 				}
+
 			} else {
+
 				arr.push(value);
+
 			}
+
 		}
+
 		return arr;
+
 	}
+
 })();
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Map.prototype.save = function () {
+
 	var w = this.width;
+
 	var h = this.height;
+
 	var arr = new Array(w * h);
+
 	for (var x = 0; x < w; x++) {
+
 	for (var y = 0; y < h; y++) {
+
 		var item = this.items[x][y];
+
 		arr[x + y * w] = item ? item.sprite + (item.flipH << 8) + (item.flipV << 9) + (item.flipR << 10) + (item.flagA << 11)  + (item.flagB << 12) : null;
+
 	}}
+
+
 
 	var obj = { w: w, h: h, name: this.name, sheet: this._spritesheetPath || '', data: encode(arr) };
+
 	return obj;
+
 };
+
+
 
 Map.prototype.load = function (obj) {
+
 	var w = obj.w;
+
 	var h = obj.h;
+
 	this._init(w, h);
+
 	this.name = obj.name || '';
+
 	this._setSpritesheetPath(obj.sheet);
+
 	var arr = decode(obj.data);
+
 	for (var x = 0; x < w; x++) {
+
 	for (var y = 0; y < h; y++) {
+
 		var d = arr[x + y * w];
+
 		if (d === null) continue;
+
 		var sprite =  d & 255;
+
 		var flipH  = (d >> 8 ) & 1;
+
 		var flipV  = (d >> 9 ) & 1;
+
 		var flipR  = (d >> 10) & 1;
+
 		var flagA  = (d >> 11) & 1;
+
 		var flagB  = (d >> 12) & 1;
+
 		this.set(x, y, sprite, flipH, flipV, flipR, flagA, flagB);
+
 	}}
 
+
+
 	this.redraw();
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Map.prototype.copy = function (x, y, w, h) {
+
 	x = x || 0;
+
 	y = y || 0;
+
 	if (w === undefined || w === null) w = this.width; 
+
 	if (h === undefined || h === null) h = this.height;
+
 	var map = new Map(w, h);
+
 	map.paste(this, -x, -y);
+
 	return map;
+
 };
+
+
 
 Map.prototype.paste = function (map, x, y, merge) {
+
 	x = x || 0;
+
 	y = y || 0;
+
 	var width  = Math.min(map.width,  this.width  - x);
+
 	var height = Math.min(map.height, this.height - y);
+
 	var sx = Math.max(0, -x);
+
 	var sy = Math.max(0, -y);
 
+
+
 	for (var i = sx; i < width; i++) {
+
 		for (var j = sy; j < height; j++) {
+
 			var item = map.items[i][j];
+
 			if (!item) {
+
 				if (merge) continue;
+
 				this.remove(i + x, j + y);
+
 				continue;
+
 			}
+
 			this.set(i + x, j + y, item.sprite, item.flipH, item.flipV, item.flipR, item.flagA, item.flagB);
+
 		}
+
 	}
+
 	this.redraw();
+
 	return this;
+
 };
+
+
 
 Map.prototype.clear = function () {
+
 	for (var x = 0; x < this.width;  x++) {
+
 	for (var y = 0; y < this.height; y++) {
+
 		this.items[x][y] = null;
+
 	}}
+
 	this.texture.clear();
+
 	return this;
+
 };
+
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Map.prototype._findNull = function () {
+
 	var result = [];
+
 	for (var x = 0; x < this.width;  x++) {
+
 	for (var y = 0; y < this.height; y++) {
+
 		if (this.items[x][y] === null) result.push({ x: x, y: y });
+
 	}}
+
 	return result;
+
 };
 
+
+
 Map.prototype.find = function (sprite, flagA, flagB) {
+
 	if (sprite === null) return this._findNull();
+
 	if (flagA === undefined) flagA = null;
+
 	if (flagB === undefined) flagB = null;
+
 	var result = [];
+
 	for (var x = 0; x < this.width;  x++) {
+
 	for (var y = 0; y < this.height; y++) {
+
 		var item = this.items[x][y];
+
 		if (!item) continue;
+
 		var isSameFlagA = flagA === null || item.flagA === flagA;
+
 		var isSameFlagB = flagB === null || item.flagB === flagB;
+
 		if (item.sprite === sprite && isSameFlagA && isSameFlagB) result.push(item);
+
 	}}
+
 	return result;
+
 };
+
+
 
 
 },{"../../settings.json":36,"Texture":26}],3:[function(require,module,exports){
 var Transition         = require('./Transition');
+
 var TransitionRelative = require('./TransitionRelative');
 
+
+
 var easingFunctions        = require('./easing');
+
 var interpolationFunctions = require('./interpolation');
 
 
+
+
+
 // Temporisation, used for waiting
+
 function Temporisation(start, duration, toObject, properties) {
+
 	this.start    = start;
+
 	this.end      = start + duration;
+
 	this.duration = duration;
 
+
+
 	this.properties = properties;
+
 	this.to = toObject;
+
 }
+
+
 
 Temporisation.prototype.update = function (object) {
+
 	for (var p = 0; p < this.properties.length; p += 1) {
+
 		var property = this.properties[p];
+
 		object[property] = this.to[property];
+
 	}
+
 };
+
+
 
 /**
+
  *
+
  * @classdesc
+
  * Manages transition of properties of an object
+
  *
+
  * @param {object} object     - Object to tween
+
  * @param {array}  properties - Properties of the object to tween
+
  *
+
  */
 
+
+
 function AbstractTween(object, properties) {
+
 	// Tweened object
+
 	this._object = object;
 
+
+
 	if ((properties === null || properties === undefined) && (object instanceof Array)) {
+
 		// Given object is an array
+
 		// Its properties to tween are the indices of the array
+
 		properties = [];
+
 		for (var p = 0; p < object.length; p += 1) {
+
 			properties[p] = p;
+
 		}
+
 	}
+
+
 
 	// Properties to tween
+
 	this._properties = properties;
 
+
+
 	// Starting property values
+
 	// By default is a copy of given object property values
+
 	this._from = null;
 
+
+
 	// Property interpolations
+
 	this._interpolations = null;
 
+
+
 	// Current transition index
+
 	this._index = 0;
 
+
+
 	// List of transitions of the tween
+
 	this._transitions = [];
+
+
 
 	// Whether the tween is relative
+
 	this._relative = false;
 
+
+
 	// Current time
+
 	this._time = 0;
 
+
+
 	// Total duration
+
 	this._duration = 0;
+
 }
+
 module.exports = AbstractTween;
 
+
+
 AbstractTween.prototype.relative = function (relative) {
+
 	this._relative = relative;
+
 	return this;
+
 };
+
+
 
 AbstractTween.prototype.reset = function () {
+
 	this._index       = 0;
+
 	this._duration    = 0;
+
 	this._transitions = [];
+
 	return this;
+
 };
+
+
 
 AbstractTween.prototype.interpolations = function (interpolations) {
+
 	// The API allows to pass interpolation names that will be replaced
+
 	// by the corresponding interpolation functions
+
 	for (var p = 0; p < this._properties.length; p += 1) {
+
 		var property = this._properties[p];
+
 		var interpolation = interpolations[property];
+
 		if (interpolation === undefined) {
+
 			interpolations[property] = interpolationFunctions.linear;
+
 			continue;
+
 		}
+
+
 
 		if (typeof(interpolation) === 'string') {
+
 			// Replacing interpolation name by interpolation function
+
 			if (interpolationFunctions[interpolation] === undefined) {
+
 				console.warn('[AbstractTween.interpolations] Given interpolation does not exist');
+
 				interpolations[property] = interpolationFunctions.linear;
+
 			} else {
+
 				interpolations[property] = interpolationFunctions[interpolation];
+
 			}
+
 		}
+
 	}
+
+
 
 	this._interpolations = interpolations;
+
 	return this;
+
 };
+
+
 
 AbstractTween.prototype.from = function (fromObject) {
+
 	this._from = fromObject;
 
+
+
 	if (this._transitions.length > 0) {
+
 		this._transitions[0].from = fromObject;
+
 	}
 
+
+
 	return this;
+
 };
+
+
 
 AbstractTween.prototype._setFrom = function () {
+
 	// Copying properties of tweened object
+
 	this._from = {};
+
 	for (var p = 0; p < this._properties.length; p += 1) {
+
 		var property = this._properties[p];
+
 		this._from[property] = (this._relative === true) ? 0 : this._object[property];
+
 	}
+
+
 
 	return this._from;
+
 };
+
+
 
 AbstractTween.prototype._getLastTransitionEnding = function () {
+
 	if (this._transitions.length > 0) {
+
 		return (this._relative === true) ? this._setFrom() : this._transitions[this._transitions.length - 1].to;
+
 	} else {
+
 		return (this._from === null) ? this._setFrom() : this._from;
+
 	}
+
 };
+
+
 
 AbstractTween.prototype.to = function (toObject, duration, easing, easingParam, interpolationParams) {
+
 	// The API allows to pass easing names that will be replaced
+
 	// by the corresponding easing functions
+
 	if (typeof(easing) === 'string') {
+
 		// Replacing easing name by easing function
+
 		if (easingFunctions[easing] === undefined) {
+
 			console.warn('[AbstractTween.to] Given easing does not exist');
+
 			easing = undefined;
+
 		} else {
+
 			easing = easingFunctions[easing];
+
 		}
+
 	}
+
+
 
 	// Getting previous transition ending as the beginning for the new transition
+
 	var fromObject = this._getLastTransitionEnding();
 
+
+
 	var TransitionConstructor = (this._relative === true) ? TransitionRelative : Transition;
+
 	var transition = new TransitionConstructor(
+
 		this._properties,
+
 		fromObject,
+
 		toObject,
+
 		this._duration, // starting time
+
 		duration,
+
 		easing,
+
 		easingParam,
+
 		this._interpolations,
+
 		interpolationParams
+
 	);
 
+
+
 	this._transitions.push(transition);
+
 	this._duration += duration;
+
 	return this;
+
 };
+
+
 
 AbstractTween.prototype.wait = function (duration) {
+
 	var toObject = this._getLastTransitionEnding();
+
 	this._transitions.push(new Temporisation(this._duration, duration, toObject, this._properties));
+
 	this._duration += duration;
+
 	return this;
+
 };
+
+
 
 AbstractTween.prototype._update = function () {
+
 	// Finding transition corresponding to current time
+
 	var transition = this._transitions[this._index];
+
 	while (transition.end <= this._time) {
+
 		if (this._index === (this._transitions.length - 1)) {
+
 			transition.update(this._object, 1);
+
 			return;
+
 		}
 
+
+
 		if (this._relative === true ) {
+
 			transition.update(this._object, 1);
+
 		}
+
+
 
 		transition = this._transitions[++this._index];
+
 	}
+
+
 
 	while (this._time <= transition.start) {
+
 		if (this._index === 0) {
+
 			transition.update(this._object, 0);
+
 			return;
+
 		}
+
+
 
 		if (this._relative === true ) {
+
 			transition.update(this._object, 0);
+
 		}
 
+
+
 		transition = this._transitions[--this._index];
+
 	}
+
+
 
 	// Updating the object with respect to the current transition and time
+
 	transition.update(this._object, (this._time - transition.start) / transition.duration);
+
 };
 
+
+
 AbstractTween.prototype._validate = function () {
+
 	if (this._transitions.length === 0) {
+
 		console.warn('[AbstractTween._validate] Cannot start a tween with no transition:', this);
+
 		return false;
+
 	}
 
+
+
 	return true;
+
 };
 },{"./Transition":18,"./TransitionRelative":19,"./easing":22,"./interpolation":25}],4:[function(require,module,exports){
 
+
 function BriefExtension() {
+
 	// Local duration of the playable, independent from speed and iterations
+
 	this._duration = 0;
 
+
+
 	// On complete callback
+
 	this._onComplete = null;
 
+
+
 	// Playing options
+
 	this._iterations = 1; // Number of times to iterate the playable
+
 	this._pingpong = false; // To make the playable go backward on even iterations
+
 	this._persist  = false; // To keep the playable running instead of completing
+
 }
+
+
 
 module.exports = BriefExtension;
 
+
+
 BriefExtension.prototype.setSpeed = function (speed) {
+
 	if (speed === 0) {
+
 		if (this._speed !== 0) {
+
 			// Setting timeStart as if new speed was 1
+
 			this._startTime += this._time / this._speed - this._time;
+
 		}
+
 	} else {
+
 		if (this._speed === 0) {
+
 			// If current speed is 0,
+
 			// it corresponds to a virtual speed of 1
+
 			// when it comes to determing where the starting time is
+
 			this._startTime += this._time - this._time / speed;
+
 		} else {
+
 			this._startTime += this._time / this._speed - this._time / speed;
+
 		}
+
 	}
+
+
 
 	this._speed = speed;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 };
+
+
 
 BriefExtension.prototype.onComplete = function (onComplete) {
+
 	this._onComplete = onComplete;
+
 	return this;
+
 };
+
+
 
 BriefExtension.prototype.getDuration = function () {
+
 	// Duration from outside the playable
+
 	return this._duration * this._iterations / this._speed;
+
 };
+
+
 
 BriefExtension.prototype._setDuration = function (duration) {
+
 	this._duration = duration;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 };
+
+
 
 BriefExtension.prototype._extendDuration = function (durationExtension) {
+
 	this._duration += durationExtension;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 };
+
+
 
 BriefExtension.prototype._getEndTime = function () {
+
 	if (this._speed > 0) {
+
 		return this._startTime + this.getDuration();
+
 	} else if (this._speed < 0) {
+
 		return this._startTime;
+
 	} else {
+
 		return Infinity;
+
 	}
+
 };
+
+
 
 BriefExtension.prototype._setStartTime = function (startTime) {
+
 	if (this._speed > 0) {
+
 		this._startTime = startTime;
+
 	} else if (this._speed < 0) {
+
 		this._startTime = startTime - this.getDuration();
+
 	} else {
+
 		this._startTime = Infinity;
+
 	}
+
 };
+
+
 
 BriefExtension.prototype._getStartTime = function () {
+
 	if (this._speed > 0) {
+
 		return this._startTime;
+
 	} else if (this._speed < 0) {
+
 		return this._startTime + this.getDuration();
+
 	} else {
+
 		return -Infinity;
+
 	}
+
 };
+
+
 
 BriefExtension.prototype._isTimeWithin = function (time) {
+
 	if (this._speed > 0) {
+
 		return (this._startTime < time) && (time < this._startTime + this.getDuration());
+
 	} else if (this._speed < 0) {
+
 		return (this._startTime + this.getDuration() < time) && (time < this._startTime);
+
 	} else {
+
 		return true;
+
 	}
+
 };
+
+
 
 BriefExtension.prototype._overlaps = function (time0, time1) {
+
 	if (this._speed > 0) {
+
 		return (this._startTime - time1) * (this._startTime + this.getDuration() - time0) <= 0;
+
 	} else if (this._speed < 0) {
+
 		return (this._startTime + this.getDuration() - time1) * (this._startTime - time0) <= 0;
+
 	} else {
+
 		return true;
+
 	}
+
 };
+
+
 
 BriefExtension.prototype.goToEnd = function () {
+
 	return this.goTo(this.getDuration(), this._iterations - 1);
+
 };
+
+
 
 BriefExtension.prototype.loop = function () {
+
 	return this.iterations(Infinity);
+
 };
+
+
 
 BriefExtension.prototype.iterations = function (iterations) {
+
 	if (iterations < 0) {
+
 		console.warn('[BriefExtension.iterations] Number of iterations cannot be negative');
+
 		return this;
+
 	}
+
+
 
 	this._iterations = iterations;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 	return this;
+
 };
+
+
 
 BriefExtension.prototype.persist = function (persist) {
+
 	this._persist = persist;
+
 	return this;
+
 };
+
+
 
 BriefExtension.prototype.pingpong = function (pingpong) {
+
 	this._pingpong = pingpong;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 	return this;
+
 };
+
+
 
 BriefExtension.prototype._complete = function (overflow) {
+
 	if (this._persist === true) {
+
 		// Playable is persisting
+
 		// i.e it never completes
+
 		this._startTime += overflow;
+
 		this._player._onPlayableChanged(this);
+
 		return;
+
 	}
+
+
 
 	// Inactivating playable before it completes
+
 	// So that the playable can be reactivated again within _onComplete callback
+
 	if (this._player._inactivate(this) === false) {
+
 		// Could not be completed
+
 		return this;
+
 	}
+
+
 
 	if (this._onComplete !== null) { 
+
 		this._onComplete(overflow);
+
 	}
+
 };
 
+
+
 var epsilon = 1e-6;
+
 BriefExtension.prototype._moveTo = function (time, dt, playerOverflow) {
+
 	dt *= this._speed;
 
+
+
 	// So many conditions!!
+
 	// That is why this extension exists
+
 	// i.e playables without durations do not need all those options
 
+
+
 	// Computing overflow and clamping time
+
 	var overflow;
+
 	if (dt !== 0) {
+
 		if (this._iterations === 1) {
+
 			// Converting into local time (relative to speed and starting time)
+
 			this._time = (time - this._startTime) * this._speed;
+
 			if (dt > 0) {
+
 				if (this._time >= this._duration) {
+
 					overflow = this._time - this._duration;
+
 					// dt -= overflow;
+
 					this._time = this._duration;
+
 				} else if (this._time < 0) {
 
+
+
 				}
+
 			} else if (dt < 0) {
+
 				if (this._time <= 0) {
+
 					overflow = this._time;
+
 					// dt -= overflow;
+
 					this._time = 0;
+
 				}
+
 			}
+
 		} else {
+
 			time = (time - this._startTime) * this._speed;
 
+
+
 			// Iteration at current update
+
 			var iteration = time / this._duration;
+
 			if (dt > 0) {
+
 				if (0 < iteration && iteration < this._iterations) {
+
 					this._time = time % this._duration;
+
 				} else {
+
 					overflow = (iteration - this._iterations) * this._duration;
+
 					this._time = this._duration * (1 - (Math.ceil(this._iterations) - this._iterations));
+
 				}
+
 			} else if (dt < 0) {
+
 				if (0 < iteration && iteration < this._iterations) {
+
 					this._time = time % this._duration;
+
 				} else {
+
 					overflow = iteration * this._duration;
+
 					this._time = 0;
+
 				}
+
 			}
+
+
 
 			if ((this._pingpong === true)) {
+
 				if (overflow === undefined) {
+
 					if ((Math.ceil(iteration) & 1) === 0) {
+
 						this._time = this._duration - this._time;
+
 					}
+
 				} else {
+
 					if (Math.ceil(this._iterations) === this._iterations) {
+
 						if ((Math.ceil(this._iterations) & 1) === 0) {
+
 							this._time = this._duration - this._time;
+
 						}
+
 					}
+
 				}
+
 			}
+
 		}
+
 	}
 
+
+
 	if (playerOverflow !== undefined && overflow === undefined) {
+
 		// Ensuring that the playable overflows when its player overflows
+
 		// This conditional is to deal with Murphy's law:
+
 		// There is one in a billion chance that a player completes while one of his playable
+
 		// does not complete due to stupid rounding errors
+
 		if (dt > 0 && this.duration - this._time < epsilon) {
+
 			// overflow = Math.max((time - this._startTime) * this._speed - this._duration * this._iterations, overflow);
+
 			overflow = playerOverflow;
+
 			this._time = this._duration;
+
 		} else if (dt < 0 && this._time < epsilon) {
+
 			// overflow = Math.min((time - this._startTime) * this._speed, overflow);
+
 			overflow = playerOverflow;
+
 			this._time = 0;
+
 		}
+
 	}
+
+
 
 	this._update(dt, overflow);
 
+
+
 	if (this._onUpdate !== null) {
+
 		if (overflow === undefined) {
+
 			this._onUpdate(this._time, dt);
+
 		} else {
+
 			this._onUpdate(this._time, dt - overflow);
+
 		}
+
 	}
 
+
+
 	if (overflow !== undefined) {
+
 		this._complete(overflow);
+
 	}
+
 };
 },{}],5:[function(require,module,exports){
 var inherit        = require('./inherit');
+
 var Playable       = require('./Playable');
+
 var BriefExtension = require('./BriefExtension');
 
+
+
 function BriefPlayable() {
+
 	Playable.call(this);
+
 	BriefExtension.call(this);
+
 }
 
+
+
 BriefPlayable.prototype = Object.create(Playable.prototype);
+
 BriefPlayable.prototype.constructor = BriefPlayable;
+
 inherit(BriefPlayable, BriefExtension);
+
+
 
 module.exports = BriefPlayable;
 },{"./BriefExtension":4,"./Playable":10,"./inherit":24}],6:[function(require,module,exports){
 var inherit        = require('./inherit');
+
 var Player         = require('./Player');
+
 var BriefExtension = require('./BriefExtension');
 
+
+
 function BriefPlayer() {
+
 	Player.call(this);
+
 	BriefExtension.call(this);
+
 }
+
 BriefPlayer.prototype = Object.create(Player.prototype);
+
 BriefPlayer.prototype.constructor = BriefPlayer;
+
 inherit(BriefPlayer, BriefExtension);
+
+
 
 module.exports = BriefPlayer;
 
+
+
 BriefPlayer.prototype._onAllPlayablesRemoved = function () {
+
 	this._duration = 0;
+
 };
+
+
 
 BriefPlayer.prototype._updateDuration = function () {
+
 	var totalDuration = 0;
 
+
+
 	var handle, playable, playableDuration;
+
 	for (handle = this._activePlayables.first; handle !== null; handle = handle.next) {
+
 		playable = handle.object;
+
 		playableDuration = playable._getStartTime() + playable.getDuration();
+
 		if (playableDuration > totalDuration) {
+
 			totalDuration = playableDuration;
+
 		}
+
 	}
+
+
 
 	for (handle = this._inactivePlayables.first; handle !== null; handle = handle.next) {
+
 		playable = handle.object;
+
 		playableDuration = playable._getStartTime() + playable.getDuration();
+
 		if (playableDuration > totalDuration) {
+
 			totalDuration = playableDuration;
+
 		}
+
 	}
 
+
+
 	this._setDuration(totalDuration);
+
 };
 
+
+
 BriefPlayer.prototype._onPlayableChanged = BriefPlayer.prototype._updateDuration;
+
 BriefPlayer.prototype._onPlayableRemoved = BriefPlayer.prototype._updateDuration;
 
+
+
 // BriefPlayer.prototype._onPlayableChanged = function (changedPlayable) {
+
 // 	this._warn('[BriefPlayer._onPlayableChanged] Changing a playable\'s property after attaching it to a player may have unwanted side effects',
+
 // 		'playable:', changedPlayable, 'player:', this);
+
 // };
 },{"./BriefExtension":4,"./Player":11,"./inherit":24}],7:[function(require,module,exports){
 var BriefPlayable = require('./BriefPlayable');
 
+
+
 /**
+
  * @classdesc
+
  * Manages tweening of one property or several properties of an object
+
  */
 
+
+
 function Delay(duration) {
+
 	if ((this instanceof Delay) === false) {
+
 		return new Delay(duration);
+
 	}
 
+
+
 	BriefPlayable.call(this);
+
 	this._duration = duration;
+
 }
+
 Delay.prototype = Object.create(BriefPlayable.prototype);
+
 Delay.prototype.constructor = Delay;
+
 module.exports = Delay;
 },{"./BriefPlayable":5}],8:[function(require,module,exports){
 /**
+
  * DOUBLY LIST Class
+
  *
+
  * @author Brice Chevalier
+
  *
+
  * @desc Doubly list data structure
+
  *
+
  * Method      Time Complexity
+
  * ___________________________________
+
  *
+
  * add         O(1)
+
  * remove      O(1)
+
  * clear       O(n)
+
  *
+
  * Memory Complexity in O(n)
+
  */
 
+
+
 function ListNode(obj, previous, next, container) {
+
 	this.object    = obj;
+
 	this.previous  = previous;
+
 	this.next      = next;
+
 	this.container = container;
+
 }
+
+
 
 function DoublyList() {
+
 	this.first  = null;
+
 	this.last   = null;
+
 	this.length = 0;
+
 }
+
 module.exports = DoublyList;
 
+
+
 DoublyList.prototype.addFront = function (obj) {
+
 	var newNode = new ListNode(obj, null, this.first, this);
+
 	if (this.first === null) {
+
 		this.first = newNode;
+
 		this.last  = newNode;
+
 	} else {
+
 		this.first.previous = newNode;
+
 		this.first = newNode;
+
 	}
 
+
+
 	this.length += 1;
+
 	return newNode;
+
 };
+
 DoublyList.prototype.add = DoublyList.prototype.addFront;
 
+
+
 DoublyList.prototype.addBack = function (obj) {
+
 	var newNode = new ListNode(obj, this.last, null, this);
+
 	if (this.first === null) {
+
 		this.first = newNode;
+
 		this.last  = newNode;
+
 	} else {
+
 		this.last.next = newNode;
+
 		this.last      = newNode;
+
 	}
+
+
 
 	this.length += 1;
+
 	return newNode;
+
 };
+
+
 
 DoublyList.prototype.popFront = function (obj) {
+
 	var object = this.first.object;
+
 	this.removeByReference(this.first);
+
 	return object;
+
 };
+
 DoublyList.prototype.pop = DoublyList.prototype.popFront;
 
+
+
 DoublyList.prototype.popBack = function (obj) {
+
 	var object = this.last.object;
+
 	this.removeByReference(this.last);
+
 	return object;
+
 };
 
+
+
 DoublyList.prototype.addBefore = function (node, obj) {
+
 	var newNode = new ListNode(obj, node.previous, node, this);
 
+
+
 	if (node.previous !== null) {
+
 		node.previous.next = newNode;
+
 	}
+
+
 
 	node.previous = newNode;
 
+
+
 	if (this.first === node) {
+
 		this.first = newNode;
+
 	}
+
+
 
 	this.length += 1;
+
 	return newNode;
+
 };
 
+
+
 DoublyList.prototype.addAfter = function (node, obj) {
+
 	var newNode = new ListNode(obj, node, node.next, this);
 
+
+
 	if (node.next !== null) {
+
 		node.next.previous = newNode;
+
 	}
+
+
 
 	node.next = newNode;
 
+
+
 	if (this.last === node) {
+
 		this.last = newNode;
+
 	}
+
+
 
 	this.length += 1;
+
 	return newNode;
+
 };
+
+
 
 DoublyList.prototype.moveToTheBeginning = function (node) {
+
 	if (!node || node.container !== this) {
+
 		return false;
+
 	}
 
+
+
 	if (node.previous === null) {
+
 		// node is already the first one
+
 		return true;
+
 	}
+
+
 
 	// Connecting previous node to next node
+
 	node.previous.next = node.next;
 
+
+
 	if (this.last === node) {
+
 		this.last = node.previous;
+
 	} else {
+
 		// Connecting next node to previous node
+
 		node.next.previous = node.previous;
+
 	}
+
+
 
 	// Adding at the beginning
+
 	node.previous = null;
+
 	node.next = this.first;
+
 	node.next.previous = node;
+
 	this.first = node;
+
 	return true;
+
 };
+
+
 
 DoublyList.prototype.moveToTheEnd = function (node) {
+
 	if (!node || node.container !== this) {
+
 		return false;
+
 	}
 
+
+
 	if (node.next === null) {
+
 		// node is already the last one
+
 		return true;
+
 	}
+
+
 
 	// Connecting next node to previous node
+
 	node.next.previous = node.previous;
 
+
+
 	if (this.first === node) {
+
 		this.first = node.next;
+
 	} else {
+
 		// Connecting previous node to next node
+
 		node.previous.next = node.next;
+
 	}
+
+
 
 	// Adding at the end
+
 	node.next = null;
+
 	node.previous = this.last;
+
 	node.previous.next = node;
+
 	this.last = node;
+
 	return true;
+
 };
+
+
 
 DoublyList.prototype.removeByReference = function (node) {
+
 	if (node.container !== this) {
+
 		console.warn('[DoublyList.removeByReference] Trying to remove a node that does not belong to the list');
+
 		return node;
+
 	}
+
+
 
 	// Removing any existing reference to the node
+
 	if (node.next === null) {
+
 		this.last = node.previous;
+
 	} else {
+
 		node.next.previous = node.previous;
+
 	}
+
+
 
 	if (node.previous === null) {
+
 		this.first = node.next;
+
 	} else {
+
 		node.previous.next = node.next;
+
 	}
+
+
 
 	// Removing any existing reference from the node
+
 	node.next = null;
+
 	node.previous = null;
+
 	node.container = null;
 
+
+
 	// One less node in the list
+
 	this.length -= 1;
 
+
+
 	return null;
+
 };
+
+
 
 DoublyList.prototype.remove = function (object) {
+
 	for (var node = this.first; node !== null; node = node.next) {
+
 		if (node.object === object) {
+
 			this.removeByReference(node);
+
 			return true;
+
 		}
+
 	}
+
+
 
 	return false;
+
 };
+
+
 
 DoublyList.prototype.getNode = function (object) {
+
 	for (var node = this.first; node !== null; node = node.next) {
+
 		if (node.object === object) {
+
 			return node;
+
 		}
+
 	}
+
+
 
 	return null;
+
 };
+
+
 
 DoublyList.prototype.clear = function () {
+
 	// Making sure that nodes containers are being resetted
+
 	for (var node = this.first; node !== null; node = node.next) {
+
 		node.container = null;
+
 	}
+
+
 
 	this.first  = null;
+
 	this.last   = null;
+
 	this.length = 0;
+
 };
+
+
 
 DoublyList.prototype.forEach = function (processingFunc, params) {
+
 	for (var node = this.first; node; node = node.next) {
+
 		processingFunc(node.object, params);
+
 	}
+
 };
 
+
+
 DoublyList.prototype.toArray = function () {
+
 	var objects = [];
+
 	for (var node = this.first; node !== null; node = node.next) {
+
 		objects.push(node.object);
+
 	}
 
+
+
 	return objects;
+
 };
 },{}],9:[function(require,module,exports){
 var BriefPlayable = require('./BriefPlayable');
+
 var AbstractTween   = require('./AbstractTween');
 
+
+
 /**
+
  *
+
  * @classdesc
+
  * Manages transition of properties of an object
+
  *
+
  * @param {object} object     - Object to tween
+
  * @param {array}  properties - Properties of the object to tween
+
  *
+
  */
 
+
+
 function NestedTween(object, properties) {
+
 	if ((this instanceof NestedTween) === false) {
+
 		return new NestedTween(object, properties);
+
 	}
+
+
 
 	BriefPlayable.call(this);
 
+
+
 	// Map if tween per object for fast access
+
 	this._tweensPerObject = {};
 
+
+
 	// Array of tween for fast iteration when udpating
+
 	this._tweens = [];
 
+
+
 	// Property chains per object
+
 	this._propertyChains = {};
 
+
+
 	// Array of object chains
+
 	this._propertyChainStrings = [];
 
+
+
 	var objects = {};
+
 	var propertiesPerObject = {};
+
 	var property, propertyChainString;
 
+
+
 	for (var p = 0; p < properties.length; p += 1) {
+
 		var propertyString = properties[p];
+
 		propertyChainString = propertyString.substring(0, propertyString.lastIndexOf('.'));
 
+
+
 		if (propertiesPerObject[propertyChainString] === undefined) {
+
 			// Fetching object and property
+
 			var propertyChain = propertyString.split('.');
+
 			var propertyIndex = propertyChain.length - 1;
+
 			var propertyObject = object;
 
+
+
 			// Following the chain to get the object
+
 			for (var c = 0; c < propertyIndex; c += 1) {
+
 				propertyObject = propertyObject[propertyChain[c]];
+
 			}
+
+
 
 			property = propertyChain[propertyIndex];
+
 			if (propertyObject[property] instanceof Array) {
+
 				propertiesPerObject[propertyString] = null;
+
 				objects[propertyString] = propertyObject[property];
+
 				this._propertyChainStrings.push(propertyString);
+
 				this._propertyChains[propertyString] = propertyChain;
+
 			} else {
+
 				propertiesPerObject[propertyChainString] = [property];
+
 				objects[propertyChainString] = propertyObject;
+
 				this._propertyChainStrings.push(propertyChainString);
 
+
+
 				// Removing last element of the property chain
+
 				propertyChain.pop();
 
+
+
 				this._propertyChains[propertyChainString] = propertyChain;
+
 			}
 
+
+
 		} else {
+
 			// Object was already fetched
+
 			property = propertyString.substring(propertyString.lastIndexOf('.') + 1);
+
 			propertiesPerObject[propertyChainString].push(property);
+
 		}
+
 	}
+
+
 
 	// Creating the tweens
+
 	for (propertyChainString in objects) {
+
 		var tweenObject     = objects[propertyChainString];
+
 		var tweenProperties = propertiesPerObject[propertyChainString];
+
 		var tween = new AbstractTween(tweenObject, tweenProperties);
+
 		this._tweens.push(tween);
+
 		this._tweensPerObject[propertyChainString] = tween;
+
 	}
+
 }
+
 NestedTween.prototype = Object.create(BriefPlayable.prototype);
+
 NestedTween.prototype.constructor = NestedTween;
+
 module.exports = NestedTween;
 
+
+
 NestedTween.prototype.relative = function (relative) {
+
 	// Dispatching relative
+
 	for (var t = 0; t < this._tweens.length; t += 1) {
+
 		this._tweens[t].relative(relative);
+
 	}
+
 	return this;
+
 };
+
+
 
 NestedTween.prototype.reset = function () {
+
 	// Dispatching reset
+
 	for (var t = 0; t < this._tweens.length; t += 1) {
+
 		this._tweens[t].reset();
+
 	}
+
+
 
 	this._duration = 0;
+
 	return this;
+
 };
+
+
 
 NestedTween.prototype.interpolations = function (interpolations) {
+
 	// Dispatching interpolations
+
 	for (var o = 0; o < this._propertyChainStrings.length; o += 1) {
+
 		var propertyChainString = this._propertyChainStrings[o];
+
 		var propertyChain = this._propertyChains[propertyChainString];
+
 		var chainLength   = propertyChain.length;
 
+
+
 		var objectInterpolations = interpolations;
+
 		for (var c = 0; c < chainLength && objectInterpolations !== undefined; c += 1) {
+
 			objectInterpolations = objectInterpolations[propertyChain[c]];
+
 		}
+
+
 
 		if (objectInterpolations !== undefined) {
+
 			this._tweensPerObject[propertyChainString].interpolations(objectInterpolations);
+
 		}
+
 	}
 
+
+
 	return this;
+
 };
+
+
 
 NestedTween.prototype.from = function (fromObject) {
+
 	// Dispatching from
+
 	for (var o = 0; o < this._propertyChainStrings.length; o += 1) {
+
 		var propertyChainString = this._propertyChainStrings[o];
+
 		var propertyChain = this._propertyChains[propertyChainString];
+
 		var chainLength = propertyChain.length;
+
+
 
 		var object = fromObject;
+
 		for (var c = 0; c < chainLength && object !== undefined; c += 1) {
+
 			object = object[propertyChain[c]];
+
 		}
+
+
 
 		if (object !== undefined) {
+
 			this._tweensPerObject[propertyChainString].from(object);
+
 		}
+
 	}
 
+
+
 	return this;
+
 };
+
+
 
 NestedTween.prototype.to = function (toObject, duration, easing, easingParam, interpolationParams) {
+
 	// Dispatching to
+
 	for (var o = 0; o < this._propertyChainStrings.length; o += 1) {
+
 		var propertyChainString = this._propertyChainStrings[o];
+
 		var propertyChain = this._propertyChains[propertyChainString];
+
 		var chainLength = propertyChain.length;
 
+
+
 		var object = toObject;
+
 		for (var c = 0; c < chainLength; c += 1) {
+
 			object = object[propertyChain[c]];
+
 		}
+
+
 
 		var objectInterpolationParams = interpolationParams;
+
 		for (c = 0; c < chainLength && objectInterpolationParams !== undefined; c += 1) {
+
 			objectInterpolationParams = objectInterpolationParams[propertyChain[c]];
+
 		}
 
+
+
 		this._tweensPerObject[propertyChainString].to(object, duration, easing, easingParam, objectInterpolationParams);
+
 	}
 
+
+
 	this._extendDuration(duration);
+
 	return this;
+
 };
+
+
 
 NestedTween.prototype.wait = function (duration) {
+
 	// Dispatching wait
+
 	for (var t = 0; t < this._tweens.length; t += 1) {
+
 		this._tweens[t].wait(duration);
+
 	}
+
+
 
 	this._extendDuration(duration);
+
 	return this;
+
 };
 
+
+
 NestedTween.prototype._update = function () {
+
 	for (var t = 0; t < this._tweens.length; t += 1) {
+
 		var tween = this._tweens[t];
+
 		tween._time = this._time;
+
 		tween._update();
+
 	}
+
 };
 },{"./AbstractTween":3,"./BriefPlayable":5}],10:[function(require,module,exports){
 /** @class */
+
 function Playable() {
+
 	// Player component handling this playable
+
 	this._player = null;
 
+
+
 	// Handle of the playable within its player
+
 	this._handle = null;
 
+
+
 	// Starting time, is global (relative to its player time)
+
 	this._startTime = 0;
 
+
+
 	// Current time, is local (relative to starting time)
+
 	// i.e this._time === 0 implies this._player._time === this._startTime
+
 	this._time  = 0;
 
+
+
 	// Playing speed of the playable
+
 	this._speed = 1;
 
+
+
 	// Callbacks
+
 	this._onStart  = null;
+
 	this._onPause  = null;
+
 	this._onResume = null;
+
 	this._onUpdate = null;
+
 	this._onStop   = null;
+
 }
+
+
 
 module.exports = Playable;
 
+
+
 Object.defineProperty(Playable.prototype, 'speed', {
+
 	get: function () { return this._speed; },
+
 	set: function (speed) {
+
 		this.setSpeed(speed);
+
 	}
+
 });
+
+
 
 Object.defineProperty(Playable.prototype, 'time', {
+
 	get: function () { return this._time; },
+
 	set: function (time) {
+
 		this.goTo(time);
+
 	}
+
 });
 
+
+
 Playable.prototype.onStart  = function (onStart)  { this._onStart  = onStart;  return this; };
+
 Playable.prototype.onUpdate = function (onUpdate) { this._onUpdate = onUpdate; return this; };
+
 Playable.prototype.onStop   = function (onStop)   { this._onStop   = onStop;   return this; };
+
 Playable.prototype.onPause  = function (onPause)  { this._onPause  = onPause;  return this; };
+
 Playable.prototype.onResume = function (onResume) { this._onResume = onResume; return this; };
 
+
+
 Playable.prototype.tweener = function (tweener) {
+
 	if (tweener === null || tweener === undefined) {
+
 		console.warn('[Playable.tweener] Given tweener is invalid:', tweener);
+
 		return this;
+
 	}
+
+
 
 	this._player = tweener;
+
 	return this;
+
 };
+
+
 
 Playable.prototype.setSpeed = function (speed) {
+
 	if (speed < 0) {
+
 		console.warn('[Playable.speed] This playable cannot have negative speed');
+
 		return;
+
 	}
+
+
 
 	if (speed === 0) {
+
 		if (this._speed !== 0) {
+
 			// Setting timeStart as if new speed was 1
+
 			this._startTime += this._time / this._speed - this._time;
+
 		}
+
 	} else {
+
 		if (this._speed === 0) {
+
 			// If current speed is 0,
+
 			// it corresponds to a virtual speed of 1
+
 			// when it comes to determing where the starting time is
+
 			this._startTime += this._time - this._time / speed;
+
 		} else {
+
 			this._startTime += this._time / this._speed - this._time / speed;
+
 		}
+
 	}
+
+
 
 	this._speed = speed;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 };
+
+
 
 Playable.prototype.goTo = function (timePosition, iteration) {
+
 	if (this._iterations === 1) {
+
 		if(this._speed === 0) {
+
 			// Speed is virtually 1
+
 			this._startTime += this._time - timePosition;
+
 		} else {
+
 			// Offsetting starting time with respect to current time and speed
+
 			this._startTime += (this._time - timePosition) / this._speed;
+
 		}
+
 	} else {
+
 		iteration = iteration || 0;
+
 		if(this._speed === 0) {
+
 			// Speed is virtually 1
+
 			this._startTime += this._time - timePosition - iteration * this._duration;
+
 		} else {
+
 			// Offsetting starting time with respect to current time and speed
+
 			this._startTime += (this._time - timePosition - iteration * this._duration) / this._speed;
+
 		}
+
 	}
+
+
 
 	this._time = timePosition;
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 	return this;
+
 };
+
+
 
 Playable.prototype.goToBeginning = function () {
+
 	return this.goTo(0, 0);
+
 };
+
+
 
 Playable.prototype.getDuration = function () {
+
 	return Infinity;
+
 };
+
+
 
 Playable.prototype._getEndTime = function () {
+
 	return Infinity;
+
 };
+
+
 
 Playable.prototype._setStartTime = function (startTime) {
+
 	this._startTime = startTime;
+
 };
+
+
 
 Playable.prototype._getStartTime = function () {
+
 	return this._startTime;
+
 };
+
+
 
 Playable.prototype._isWithin = function (time) {
+
 	return this._startTime < time;
+
 };
+
+
 
 Playable.prototype._overlaps = function (time0, time1) {
+
 	return (time0 - this._startTime) * (time1 - this._startTime) <= 0;
+
 };
+
+
 
 Playable.prototype.rewind = function () {
+
 	this.goTo(0, 0);
+
 	return this;
+
 };
+
+
 
 Playable.prototype.delay = function (delay) {
+
 	return this.start(-delay);
+
 };
+
+
 
 Playable.prototype.start = function (timeOffset) {
+
 	if (this._player === null) {
+
 		this._player = TINA._startDefaultTweener();
+
 	}
+
+
 
 	if (this._validate() === false) {
+
 		// Did not pass validation
+
 		return this;
+
 	}
+
+
 
 	if (this._player._add(this) === false) {
+
 		// Could not be added to player
+
 		return this;
+
 	}
+
+
 
 	if (timeOffset === undefined || timeOffset === null) {
+
 		timeOffset = 0;
+
 	}
+
+
 
 	this._startTime = this._player._time - timeOffset;
+
 	return this;
+
 };
+
+
 
 Playable.prototype._start = function () {
+
 	if (this._onStart !== null) {
+
 		this._onStart();
+
 	}
+
 };
+
+
 
 Playable.prototype.stop = function () {
+
 	if (this._player === null) {
+
 		console.warn('[Playable.stop] Trying to stop a playable that was never started.');
+
 		return;
+
 	}
+
+
 
 	// Stopping playable without performing any additional update nor completing
+
 	if (this._player._remove(this) === false) {
+
 		// Could not be removed
+
 		return this;
+
 	}
+
+
 
 	if (this._onStop !== null) {
+
 		this._onStop();
+
 	}
+
 	return this;
+
 };
+
+
 
 Playable.prototype.resume = function () {
+
 	if (this._player._activate(this) === false) {
+
 		// Could not be resumed
+
 		return this;
+
 	}
+
+
 
 	if (this._onResume !== null) {
+
 		this._onResume();
+
 	}
+
 	return this;
+
 };
+
+
 
 Playable.prototype.pause = function () {
+
 	if (this._player._remove(this) === false) {
+
 		// Could not be paused
+
 		return this;
+
 	}
+
+
 
 	if (this._onPause !== null) {
+
 		this._onPause();
+
 	}
+
+
 
 	return this;
+
 };
+
+
 
 Playable.prototype._moveTo = function (time, dt) {
+
 	dt *= this._speed;
 
+
+
 	this._time = (time - this._startTime) * this._speed;
+
 	this._update(dt);
 
+
+
 	if (this._onUpdate !== null) {
+
 		this._onUpdate(this._time, dt);
+
 	}
+
 };
 
+
+
 // Overridable methods
+
 Playable.prototype._update   = function () {};
+
 Playable.prototype._validate = function () {};
 },{}],11:[function(require,module,exports){
 var Playable   = require('./Playable');
+
 var DoublyList = require('./DoublyList');
 
+
+
 /**
+
  * @classdesc
+
  * Manages the update of a list of playable with respect to a given elapsed time.
+
  */
+
 function Player() {
+
 	Playable.call(this);
 
+
+
 	// A DoublyList, rather than an Array, is used to store playables.
+
 	// It allows for faster removal and is similar in speed for iterations.
 
+
+
 	// Quick note: as of mid 2014 iterating through linked list was slower than iterating through arrays
+
 	// in safari and firefox as only V8 managed to have linked lists work as fast as arrays.
+
 	// As of mid 2015 it seems that performances are now identical in every major browsers.
+
 	// (KUDOs to the JS engines guys)
 
+
+
 	// List of active playables handled by this player
+
 	this._activePlayables = new DoublyList();
 
+
+
 	// List of inactive playables handled by this player
+
 	this._inactivePlayables = new DoublyList();
 
+
+
 	// List of playables that are not handled by this player anymore and are waiting to be removed
+
 	this._playablesToRemove = new DoublyList();
 
+
+
 	// Whether to silence warnings
+
 	this._silent = true;
 
+
+
 	// Whether to trigger the debugger on warnings
+
 	this._debug = false;
+
 }
+
 Player.prototype = Object.create(Playable.prototype);
+
 Player.prototype.constructor = Player;
+
 module.exports = Player;
 
+
+
 Player.prototype._add = function (playable) {
+
 	if (playable._handle === null) {
+
 		// Playable can be added
+
 		playable._handle = this._inactivePlayables.add(playable);
+
 		playable._player = this;
+
 		// this._onPlayableAdded(playable);
+
 		return true;
+
 	}
+
+
 
 	// Playable is already handled, either by this player or by another one
+
 	if (playable._handle.container === this._playablesToRemove) {
+
 		// Playable was being removed, removing from playables to remove
+
 		playable._handle = this._playablesToRemove.removeByReference(playable._handle);
+
 		return true;
+
 	}
+
+
 
 	if (playable._handle.container === this._activePlayables) {
+
 		this._warn('[Player._add] Playable is already present, and active');
+
 		return false;
+
 	}
+
+
 
 	if (playable._handle.container === this._inactivePlayables) {
+
 		this._warn('[Player._add] Playable is already present, but inactive (could be starting)');
+
 		return false;
+
 	}
 
+
+
 	this._warn('[Player._add] Playable is used elsewhere');
+
 	return false;
+
 };
+
+
 
 Player.prototype._remove = function (playable) {
+
 	if (playable._handle === null) {
+
 		this._warn('[Player._remove] Playable is not being used');
+
 		return false;
+
 	}
+
+
 
 	// Playable is handled, either by this player or by another one
+
 	if (playable._handle.container === this._activePlayables) {
+
 		// Playable was active, adding to remove list
+
 		playable._handle = this._playablesToRemove.add(playable._handle);
+
 		return true;
+
 	}
+
+
 
 	if (playable._handle.container === this._inactivePlayables) {
+
 		// Playable was inactive, removing from inactive playables
+
 		playable._handle = this._inactivePlayables.removeByReference(playable._handle);
+
 		return true;
+
 	}
+
+
 
 	if (playable._handle.container === this._playablesToRemove) {
+
 		this._warn('[Player._remove] Playable is already being removed');
+
 		return false;
+
 	}
+
+
 
 	this._warn('[Player._add] Playable is used elsewhere');
+
 	return false;
+
 };
+
+
 
 Player.prototype.remove = function (playable) {
+
 	if (playable._handle.container === this._activePlayables) {
+
 		playable.stop();
+
 	}
+
+
 
 	this._remove(playable);
+
 	this._onPlayableRemoved(playable);
+
 	return this;
+
 };
+
+
 
 Player.prototype.removeAll = function () {
+
 	// Stopping all active playables
+
 	var handle = this._activePlayables.first; 
+
 	while (handle !== null) {
+
 		var next = handle.next;
+
 		handle.object.stop();
+
 		handle = next;
+
 	}
 
+
+
 	this._handlePlayablesToRemove();
+
 	return this;
+
 };
+
+
 
 Player.prototype.possess = function (playable) {
+
 	if (playable._handle === null) {
+
 		return false;
+
 	}
+
+
 
 	return (playable._handle.container === this._activePlayables) || (playable._handle.container === this._inactivePlayables);
+
 };
+
+
 
 Player.prototype._handlePlayablesToRemove = function () {
+
 	while (this._playablesToRemove.length > 0) {
+
 		// O(1) where O stands for "Oh yeah"
 
+
+
 		// Removing from list of playables to remove
+
 		var handle = this._playablesToRemove.pop();
 
+
+
 		// Removing from list of active playables
+
 		var playable = handle.object;
+
 		playable._handle = this._activePlayables.removeByReference(handle);
+
 	}
+
+
 
 	if ((this._activePlayables.length === 0) && (this._inactivePlayables.length === 0)) {
+
 		this._onAllPlayablesRemoved();
+
 	}
+
 };
+
+
 
 Player.prototype.clear = function () {
+
 	this._activePlayables.clear();
+
 	this._inactivePlayables.clear();
+
 	this._playablesToRemove.clear();
+
 	this._controls.clear();
+
 	return this;
+
 };
+
+
 
 Player.prototype._warn = function (warning) {
+
 	// jshint debug: true
+
 	if (this._silent === false) {
+
 		console.warn(warning);
+
 	}
+
+
 
 	if (this._debug === true) {
+
 		debugger;
+
 	}
+
 };
+
+
 
 Player.prototype.silent = function (silent) {
+
 	this._silent = silent || false;
+
 	return this;
+
 };
+
+
 
 Player.prototype.debug = function (debug) {
+
 	this._debug = debug || false;
+
 	return this;
+
 };
+
+
 
 Player.prototype.stop = function () {
+
 	// Stopping all active playables
+
 	var handle = this._activePlayables.first; 
+
 	while (handle !== null) {
+
 		var next = handle.next;
+
 		var playable = handle.object;
+
 		playable.stop();
+
 		handle = next;
+
 	}
 
+
+
 	this._handlePlayablesToRemove();
+
 	Playable.prototype.stop.call(this);
+
 };
+
+
 
 Player.prototype._activate = function (playable) {
+
 	// O(1)
+
 	this._inactivePlayables.removeByReference(playable._handle);
+
 	playable._handle = this._activePlayables.addBack(playable);
+
 };
+
+
 
 Player.prototype._inactivate = function (playable) {
+
 	if (playable._handle === null) {
+
 		this._warn('[Playable.stop] Cannot stop a playable that is not running');
+
 		return;
+
 	}
+
+
 
 	// O(1)
+
 	this._activePlayables.removeByReference(playable._handle);
+
 	playable._handle = this._inactivePlayables.addBack(playable);
+
 };
+
+
 
 Player.prototype._updatePlayableList = function (dt) {
+
 	this._handlePlayablesToRemove();
 
+
+
 	var time0, time1;
+
 	if (dt > 0) {
+
 		time0 = this._time - dt;
+
 		time1 = this._time;
+
 	} else {
+
 		time0 = this._time;
+
 		time1 = this._time - dt;
+
 	}
+
+
 
 	// Activating playables
+
 	var handle = this._inactivePlayables.first;
+
 	while (handle !== null) {
+
 		var playable = handle.object;
 
+
+
 		// Fetching handle of next playable
+
 		handle = handle.next;
 
+
+
 		// Starting if player time within playable bounds
+
 		// console.log('Should playable be playing?', playable._startTime, time0, time1, dt)
+
 		if (playable._overlaps(time0, time1)) {
+
 			this._activate(playable);
+
 			playable._start();
+
 		}
+
 	}
+
 };
+
+
 
 Player.prototype._update = function (dt, overflow) {
+
 	this._updatePlayableList(dt);
+
 	for (var handle = this._activePlayables.first; handle !== null; handle = handle.next) {
+
 		if (overflow === undefined) {
+
 			handle.object._moveTo(this._time, dt);
+
 		} else {
+
 			handle.object._moveTo(this._time, dt, overflow);
+
 		}
+
 	}
+
 };
 
+
+
 // Overridable methods
+
 // Player.prototype._onPlayableAdded   = function (/* playable */) {};
+
 Player.prototype._onPlayableChanged = function (/* playable */) {};
+
 Player.prototype._onPlayableRemoved = function (/* playable */) {};
+
 Player.prototype._onAllPlayablesRemoved = function () {};
 },{"./DoublyList":8,"./Playable":10}],12:[function(require,module,exports){
 var BriefPlayable = require('./BriefPlayable');
+
 var DoublyList    = require('./DoublyList');
 
+
+
 function Record(time, values) {
+
 	this.time   = time;
+
 	this.values = values;
+
 }
+
+
 
 function ObjectRecorder(object, properties, onIn, onOut) {
+
 	this.object      = object;
+
 	this.properties  = properties;
 
+
+
 	this.records = new DoublyList();
+
 	this.currentRecord = null;
 
+
+
 	// Whether or not the playing head is within the recording duration
+
 	this.isIn = false;
 
+
+
 	this.onIn  = onIn  || null;
+
 	this.onOut = onOut || null;
+
 }
 
+
+
 ObjectRecorder.prototype.erase = function (t0, t1) {
+
 	// Removing every record between t0 and t1
+
 	if (t1 < t0) {
+
 		var t2 = t0;
+
 		t0 = t1;
+
 		t1 = t2;
+
 	}
+
+
 
 	// Heuristic: removing records from the end if last object concerned by the removal
+
 	var last = this.records.last;
+
 	if (last.object.time <= t1) {
+
 		// Removing from the end
+
 		while (last !== null && last.object.time >= t0) {
+
 			var previous = last.previous;
+
 			this.records.removeBeReference(last);
+
 			last = previous;
+
 		}
+
+
 
 		if (this.currentRecord.container === null) {
+
 			// current record was removed from the list
+
 			this.currentRecord = last;
+
 		}
+
 		return;
+
 	}
+
+
 
 	// Removing from the beginning
+
 	var recordRef = this.records.first;
+
 	while (recordRef !== null && recordRef.object.time <= t1) {
+
 		var next = recordRef.next;
+
 		if (recordRef.object.time >= t0) {
+
 			this.records.removeBeReference(recordRef);
+
 		}
+
 		recordRef = next;
+
 	}
+
+
 
 	if (this.currentRecord.container === null) {
+
 		// current record was removed from the list
+
 		this.currentRecord = recordRef;
+
 	}
+
 };
+
+
 
 ObjectRecorder.prototype.record = function (time, dt) {
+
 	if (dt === 0 && this.currentRecord !== null && this.currentRecord.time === time) {
+
 		return;
+
 	}
+
+
 
 	// Creating the record
+
 	var recordValues = [];
+
 	for (var p = 0; p < this.properties.length; p += 1) {
+
 		recordValues.push(this.object[this.properties[p]]);
+
 	}
+
 	var record = new Record(time, recordValues);
 
+
+
 	// Saving the record
+
 	if (this.records.length === 0) {
+
 		// First record, ever
+
 		this.currentRecord = this.records.add(record);
+
 		return;
+
 	}
+
+
 
 	if (this.currentRecord.object.time < time) {
+
 		this.currentRecord = this.records.addAfter(this.currentRecord, record);
+
 	} else {
+
 		this.currentRecord = this.records.addBefore(this.currentRecord, record);
+
 	}
+
 };
+
+
 
 ObjectRecorder.prototype.goTo = function (time) {
+
 	// Selecting record that corresponds to the record closest to time
+
 	while (this.currentRecord.object.time < time) {
+
 		this.currentRecord = this.currentRecord.next;
+
 	}
+
+
 
 	while (time < this.currentRecord.object.time) {
+
 		this.currentRecord = this.currentRecord.previous;
+
 	}
+
 };
 
+
+
 ObjectRecorder.prototype.play = function (time, dt, smooth) {
+
 	var nbProperties = this.properties.length;
+
 	var firstRecord  = this.records.first;
+
 	var lastRecord   = this.records.last;
 
+
+
 	var isIn;
+
 	if (dt === 0) {
+
 		isIn = this.isIn;
+
 	} else {
+
 		if (this.isIn === true) {
+
 			isIn = (firstRecord.object.time < time) && (time < lastRecord.object.time);
+
 		} else {
+
 			isIn = (firstRecord.object.time <= time) && (time <= lastRecord.object.time);
+
 		}
+
 	}
 
+
+
 	if (isIn !== this.isIn) {
+
 		this.isIn = !this.isIn;
+
 		if (isIn === true && this.onIn !== null) {
+
 			this.onIn();
+
 		}
+
 	} else if (this.isIn === false) {
+
 		return;
+
 	}
+
+
 
 	var previousRecord = (this.currentRecord.previous === null) ? this.currentRecord : this.currentRecord.previous;
 
+
+
 	while (this.currentRecord.object.time <= time) {
+
 		previousRecord = this.currentRecord;
+
 		var next = this.currentRecord.next;
+
 		if (next === null) {
+
 			break;
+
 		} else {
+
 			this.currentRecord = next;
+
 		}
+
 	}
+
+
 
 	while (time <= previousRecord.object.time) {
+
 		this.currentRecord = previousRecord;
+
 		var previous = previousRecord.previous;
+
 		if (previous === null) {
+
 			break;
+
 		} else {
+
 			previousRecord = previous;
+
 		}
+
 	}
 
+
+
 	var p;
+
 	if (smooth) {
+
 		var t0 = previousRecord.object.time;
+
 		var t1 = this.currentRecord.object.time;
+
 		var record0 = previousRecord.object.values;
+
 		var record1 = this.currentRecord.object.values;
+
+
 
 		var timeInterval = t1 - t0;
 
+
+
 		var delta0 = (t - t0) / timeInterval;
+
 		var delta1 = (t1 - t) / timeInterval;
 
+
+
 		for (p = 0; p < nbProperties; p += 1) {
+
 			this.object[this.properties[p]] = record0[p] * delta0 + record1[p] * delta1;
+
 		}
+
 	} else {
+
 		var record = this.currentRecord.object.values;
+
 		for (p = 0; p < nbProperties; p += 1) {
+
 			this.object[this.properties[p]] = record[p];
+
 		}
+
 	}
+
+
 
 	// Triggering onOut callback
+
 	if (isIn === false && this.onOut !== null) {
+
 		this.onOut();
+
 	}
+
 };
 
+
+
 /**
+
  *
+
  * @classdesc
+
  * Manages transition of properties of an object
+
  *
+
  * @param {object} object     - Object to tween
+
  * @param {array}  properties - Properties of the object to tween
+
  *
+
  */
 
+
+
 function Recorder(maxRecordingDuration) {
+
 	if ((this instanceof Recorder) === false) {
+
 		return new Recorder();
+
 	}
+
+
 
 	BriefPlayable.call(this);
 
+
+
 	// Can end only in playing mode
+
 	this._duration = Infinity;
 
+
+
 	// Time difference between this._time and recorded times
+
 	this._slackTime = 0;
 
+
+
 	// Maximum recording duration
+
 	this._maxRecordingDuration = maxRecordingDuration || Infinity;
 
+
+
 	// List of objects and properties recorded
+
 	this._recordedObjects = [];
 
+
+
 	// List of objects and properties recording
+
 	this._recordingObjects = {};
 
+
+
 	// List of object labels
+
 	this._recordingObjectLabels = [];
+
+
 
 	// Whether the recorder is in recording mode
+
 	this._recording = true;
 
+
+
 	// Whether the recorder is in playing mode
+
 	this._playing = false;
 
+
+
 	// Whether the recorder enables interpolating at play time
+
 	this._smooth = false;
 
+
+
 	this._onStartRecording = null;
+
 	this._onStopRecording  = null;
 
+
+
 	this._onStartPlaying = null;
+
 	this._onStopPlaying  = null;
+
 }
+
 Recorder.prototype = Object.create(BriefPlayable.prototype);
+
 Recorder.prototype.constructor = Recorder;
+
 module.exports = Recorder;
 
+
+
 Recorder.prototype.getDuration = function () {
+
 	// Duration from outside the playable
+
 	var duration;
+
 	if (this._playing === true) {
+
 		duration = (this._time > this._maxRecordingDuration) ? this._maxRecordingDuration : this._time;
+
 	} else {
+
 		duration = Infinity;
+
 	}
+
 	return duration * this._iterations / this._speed;
+
 };
+
+
 
 Recorder.prototype.smooth = function (smooth) {
+
 	this._smooth = smooth;
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.onStartRecording = function (onStartRecording) {
+
 	this._onStartRecording = onStartRecording;
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.onStopRecording = function (onStopRecording) {
+
 	this._onStopRecording = onStopRecording;
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.onStartPlaying = function (onStartPlaying) {
+
 	this._onStartPlaying = onStartPlaying;
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.onStopPlaying = function (onStopPlaying) {
+
 	this._onStopPlaying = onStopPlaying;
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.reset = function () {
+
 	this._recordedObjects       = [];
+
 	this._recordingObjects      = {};
+
 	this._recordingObjectLabels = [];
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.record = function (label, object, properties, onIn, onOut) {
+
 	var objectRecorder = new ObjectRecorder(object, properties, onIn, onOut);
+
 	this._recordingObjects[label] = objectRecorder;
+
 	this._recordedObjects.push(objectRecorder);
+
 	this._recordingObjectLabels.push(label);
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.stopRecordingObject = function (label) {
+
 	delete this._recordingObjects[label];
 
+
+
 	var labelIdx = this._recordingObjectLabels.indexOf(label);
+
 	if (labelIdx === -1) {
+
 		console.warn('[Recorder.stopRecordingObject] Trying to stop recording an object that is not being recording:', label);
+
 		return this;
+
 	}
+
+
 
 	this._recordingObjectLabels.splice(labelIdx, 1);
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.removeRecordedObject = function (label) {
+
 	var recorder = this._recordingObjects[label];
+
 	delete this._recordingObjects[label];
 
+
+
 	var labelIdx = this._recordingObjectLabels.indexOf(label);
+
 	if (labelIdx !== -1) {
+
 		this._recordingObjectLabels.splice(labelIdx, 1);
+
 	}
+
+
 
 	var recorderIdx = this._recordedObjects.indexOf(recorder);
+
 	if (recorderIdx === -1) {
+
 		console.warn('[Recorder.removeRecordedObject] Trying to remove an object that was not recorded:', label);
+
 		return this;
+
 	}
+
+
 
 	this._recordingObjectLabels.splice(recorderIdx, 1);
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.recording = function (recording) {
+
 	if (this._recording !== recording) {
+
 		this._recording = recording;
+
 		if (this._recording === true) {
+
 			if (this._playing === true) {
+
 				if (this._onStopPlaying !== null) {
+
 					this._onStopPlaying();
+
 				}
+
 				this._playing = false;
+
 			}
+
+
 
 			// Not resetting starting time
+
 			// and setting duration to Infinity
+
 			this._duration = Infinity;
+
 			if (this._player !== null) {
+
 				this._player._onPlayableChanged(this);
+
 			}
+
+
 
 			if (this._onStartRecording !== null) {
+
 				this._onStartRecording();
+
 			}
+
 		} else {
+
 			if (this._onStopRecording !== null) {
+
 				this._onStopRecording();
+
 			}
+
 		}
+
 	}
+
 	return this;
+
 };
+
+
 
 Recorder.prototype.playing = function (playing) {
+
 	if (this._playing !== playing) {
+
 		this._playing = playing;
+
 		if (this._playing === true) {
+
 			if (this._recording === true) {
+
 				if (this._onStopRecording !== null) {
+
 					this._onStopRecording();
+
 				}
+
 				this._recording = false;
+
 			}
+
+
 
 			// Setting duration to current position of the playing head
+
 			this._duration = this._time;
+
 			this.goToBeginning(this._startTime + this.getDuration());
 
+
+
 			if (this._onStartPlaying !== null) {
+
 				this._onStartPlaying();
+
 			}
+
 		} else {
+
 			if (this._onStopPlaying !== null) {
+
 				this._onStopPlaying();
+
 			}
+
 		}
+
 	}
+
 	return this;
+
 };
+
+
 
 Recorder.prototype._update = function (dt) {
+
 	var time = this._slackTime + this._time;
 
+
+
 	var r;
+
 	if (this._recording === true) {
+
 		var overflow, isOverflowing;
+
 		if (dt > 0) {
+
 			overflow = this._time - this._maxRecordingDuration;
+
 			isOverflowing = (overflow > 0);
+
 		} else {
+
 			overflow = this._time;
+
 			isOverflowing = (overflow < 0);
+
 		}
+
+
 
 		var nbRecordingObjects = this._recordingObjectLabels.length;
+
 		for (r = 0; r < nbRecordingObjects; r += 1) {
+
 			var label = this._recordingObjectLabels[r];
+
 			var recordingObject = this._recordingObjects[label];
 
+
+
 			// Recording object at current time
+
 			recordingObject.record(time, dt);
 
+
+
 			// Clearing the records that overflow from the maximum recording duration
+
 			if (isOverflowing === true) {
+
 				recordingObject.erase(0, overflow);
+
 			}
+
 		}
 
+
+
 		if (overflow > 0) {
+
 			this._slackTime += overflow;
+
 			this._setStartTime(this._startTime + overflow);
+
 			this._player._onPlayableChanged(this);
+
 		}
+
 	} else if (this._playing === true) {
+
 		var nbObjectRecorded = this._recordedObjects.length;
+
 		for (r = 0; r < nbObjectRecorded; r += 1) {
+
 			this._recordedObjects[r].play(time, dt, this._smooth);
+
 		}
+
 	}
+
 };
+
 
 },{"./BriefPlayable":5,"./DoublyList":8}],13:[function(require,module,exports){
 var Timeline   = require('./Timeline');
+
 var Delay      = require('./Delay');
+
 var DoublyList = require('./DoublyList');
 
+
+
 /**
+
  *
+
  * @classdesc
+
  * Manages tweening of one property or several properties of an object
+
  *
+
  * @param {object} element Object to tween
+
  * @param {string} property Property to tween
+
  * @param {number} a starting value of property
+
  * @param {number} b ending value of property
+
  *
+
  */
 
+
+
 function Sequence() {
+
 	if ((this instanceof Sequence) === false) {
+
 		return new Sequence();
+
 	}
+
+
 
 	this._sequencedPlayables = new DoublyList();
 
+
+
 	Timeline.call(this);
+
 }
+
 Sequence.prototype = Object.create(Timeline.prototype);
+
 Sequence.prototype.constructor = Sequence;
+
 module.exports = Sequence;
 
+
+
 Sequence.prototype.add = function (playable) {
+
 	this._sequencedPlayables.addBack(playable);
+
 	return Timeline.prototype.add.call(this, playable, this._duration);
+
 };
+
+
 
 Sequence.prototype.addDelay = function (duration) {
+
 	return this.add(new Delay(duration));
+
 };
+
+
 
 Sequence.prototype._reconstruct = function () {
+
 	// O(n)
+
 	var activePlayable, timeInActiveBefore;
+
 	var activePlayableHandle = this._activePlayables.first;
 
+
+
 	if (activePlayableHandle !== null) {
+
 		// How far is the sequence within the active playable?
+
 		activePlayable = activePlayableHandle.object; // only one active playable
+
 		timeInActiveBefore = this._time - activePlayable._getStartTime();
+
 	}
+
+
 
 	// Reconstructing the sequence of playables
+
 	var duration = 0;
+
 	for (var handle = this._sequencedPlayables.first; handle !== null; handle = handle.next) {
+
 		var playable = handle.object;
+
 		playable._setStartTime(duration);
+
 		duration = playable._getEndTime();
+
 	}
+
+
 
 	if (activePlayableHandle !== null) {
+
 		// Determining where to set the sequence's starting time so that the local time within
+
 		// the active playable remains the same
+
 		var currentStartTime = this._getStartTime();
+
 		var timeInActiveAfter = this._time - activePlayable._getStartTime();
+
 		var shift = timeInActiveBefore - timeInActiveAfter;
+
 		this._startTime += shift;
+
 	}
+
+
 
 	// Updating duration
+
 	this._duration = duration;
 
+
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 };
+
+
 
 Sequence.prototype.substitute = function (playableA, playableB) {
+
 	// O(n)
+
 	if (this._sequencedPlayables.length === 0) {
+
 		this._warn('[Sequence.substitute] The sequence is empty!');
+
 		return;
+
 	}
+
+
 
 	// Fetching handle for playable A
+
 	var handleA = this._sequencedPlayables.getNode(playableA);
 
+
+
 	// Adding playable B right after playable A in this._sequencedPlayables
+
 	this._sequencedPlayables.addAfter(handleA, playableB);
 
+
+
 	// Adding playable B in this player
+
 	this._add(playableB);
 
+
+
 	// Removing playable A
+
 	// Will have the effect of:
+
 	// - Stopping playable A (with correct callback)
+
 	// - Removing playable A from the sequence
+
 	// - Reconstructing the sequence
+
 	this.remove(playableA);
+
 };
+
+
 
 Sequence.prototype._onPlayableRemoved = function (removedPlayable) {
+
 	// O(n)
+
 	this._sequencedPlayables.remove(removedPlayable);
+
 	if (this._sequencedPlayables.length === 0) {
+
 		return;
+
 	}
 
+
+
 	this._reconstruct();
+
 };
 
+
+
 Sequence.prototype._onPlayableChanged = Sequence.prototype._reconstruct;
+
 
 },{"./Delay":7,"./DoublyList":8,"./Timeline":16}],14:[function(require,module,exports){
 (function (global){
 
+
 var DoublyList = require('./DoublyList');
 
+
+
 /**
+
  *
+
  * @module TINA
+
  *
+
  * @author Brice Chevalier
+
  *
+
  * @desc 
+
  *
+
  * Tweening and INterpolations for Animation
+
  *
+
  * Note: if you want a particular component to be added
+
  * create an issue or contribute at https://github.com/Wizcorp/tina.js
+
  */
 
+
+
 // window within a browser, global within node
+
 var root;
+
 if (typeof(window) !== 'undefined') {
+
 	root = window;
+
 } else if (typeof(global) !== 'undefined') {
+
 	root = global;
+
 } else {
+
 	console.warn('[TINA] Your environment might not support TINA.');
+
 	root = this;
+
 }
 
+
+
 // Method to trigger automatic updates
+
 var requestAnimFrame = (function(){
+
 	return root.requestAnimationFrame    || 
+
 		root.webkitRequestAnimationFrame || 
+
 		root.mozRequestAnimationFrame    || 
+
 		root.oRequestAnimationFrame      || 
+
 		root.msRequestAnimationFrame     ||
+
 		function(callback){
+
 			root.setTimeout(callback, 1000 / 60);
+
 		};
+
 })();
 
+
+
 // Performance.now gives better precision than Date.now
+
 var clock = root.performance || Date;
 
+
+
 var TINA = {
+
 	// List of active tweeners handled by TINA
+
 	_activeTweeners: new DoublyList(),
 
+
+
 	// List of inactive tweeners handled by TINA
+
 	_inactiveTweeners: new DoublyList(),
 
+
+
 	// List of tweeners that are not handled by this player anymore and are waiting to be removed
+
 	_tweenersToRemove: new DoublyList(),
+
+
 
 	// _tweeners: [],
 
+
+
 	_defaultTweener: null,
 
+
+
 	_startTime: 0,
+
 	_time:      0,
+
+
 
 	_running: false,
 
+
+
 	// callbacks
+
 	_onStart:  null,
+
 	_onPause:  null,
+
 	_onResume: null,
+
 	_onUpdate: null,
+
 	_onStop:   null,
 
+
+
 	_pauseOnLostFocus:            false,
+
 	_pauseOnLostFocusInitialised: false,
 
+
+
 	onStart: function (onStart) {
+
 		this._onStart = onStart;
+
 		return this;
+
 	},
+
+
 
 	onUpdate: function (onUpdate) {
+
 		this._onUpdate = onUpdate;
+
 		return this;
+
 	},
+
+
 
 	onStop: function (onStop) {
+
 		this._onStop = onStop;
+
 		return this;
+
 	},
+
+
 
 	onPause: function (onPause) {
+
 		this._onPause = onPause;
+
 		return this;
+
 	},
+
+
 
 	isRunning: function () {
+
 		return (this._running === true);
+
 	},
+
+
 
 	update: function () {
+
 		var now = clock.now() - this._startTime;
+
 		var dt = now - this._time;
+
 		if (dt < 0) {
+
 			// Clock error
+
 			// Date.now is based on a clock that is resynchronized
+
 			// every 15-20 mins and could cause the timer to go backward in time.
+
 			// (legend or reality? not sure, but I think I noticed it once)
+
 			// To get some explanation from Paul Irish:
+
 			// http://updates.html5rocks.com/2012/08/When-milliseconds-are-not-enough-performance-now
+
 			dt = 1; // incrementing time by 1 millisecond
+
 			this._startTime -= 1;
+
 			this._time += 1;
+
 		} else {
+
 			this._time = now;
+
 		}
+
+
 
 		// Removing any tweener that is requested to be removed
+
 		while (this._tweenersToRemove.length > 0) {
+
 			// Removing from list of tweeners to remove
+
 			var tweenerToRemove = this._tweenersToRemove.pop();
 
+
+
 			// Removing from list of active tweeners
+
 			tweenerToRemove._handle = this._activeTweeners.removeByReference(tweenerToRemove._handle);
+
 		}
+
+
 
 		// Activating any inactive tweener
+
 		while (this._inactiveTweeners.length > 0) {
+
 			// Removing from list of inactive tweeners
+
 			var tweenerToActivate = this._inactiveTweeners.pop();
 
+
+
 			// Adding to list of active tweeners
+
 			tweenerToActivate._handle = this._activeTweeners.addBack(tweenerToActivate);
+
 			tweenerToActivate._start();
+
 		}
+
+
 
 		for (var handle = this._activeTweeners.first; handle !== null; handle = handle.next) {
+
 			handle.object._moveTo(this._time, dt);
+
 		}
+
+
 
 		if (this._onUpdate !== null) {
+
 			this._onUpdate(this._time, dt);
+
 		}
+
 	},
+
+
 
 	reset: function () {
+
 		// Resetting the clock
+
 		// Getting time difference between last update and now
+
 		var now = clock.now();
+
 		var dt = now - this._time;
 
+
+
 		// Moving starting time by this difference
+
 		// As if the time had virtually not moved
+
 		this._startTime += dt;
+
 		this._time = 0;
+
 	},
+
+
 
 	start: function () {
+
 		if (this._startAutomaticUpdate() === false) {
+
 			return;
+
 		}
+
+
 
 		if (this._onStart !== null) {
+
 			this._onStart();
+
 		}
+
+
 
 		while (this._inactiveTweeners.length > 0) {
+
 			var handle = this._inactiveTweeners.first;
+
 			this._activate(handle.object);
+
 		}
 
+
+
 		return this;
+
 	},
+
+
 
 	stop: function () {
+
 		if (this._stopAutomaticUpdate() === false) {
+
 			return;
+
 		}
+
+
 
 		while (this._activePlayables.length > 0) {
+
 			var handle = this._activePlayables.first;
+
 			handle.object.stop();
+
 		}
+
+
 
 		if (this._onStop !== null) {
+
 			this._onStop();
+
 		}
+
+
 
 		return this;
+
 	},
 
+
+
 	// Internal start method, called by start and resume
+
 	_startAutomaticUpdate: function () {
+
 		if (this._running === true) {
+
 			console.warn('[TINA.start] TINA is already running');
+
 			return false;
+
 		}
 
+
+
 		function updateTINA() {
+
 			if (TINA._running === true) {
+
 				TINA.update();
+
 				requestAnimFrame(updateTINA);
+
 			}
+
 		}
+
+
 
 		this.reset();
 
+
+
 		// Starting the animation loop
+
 		this._running = true;
+
 		requestAnimFrame(updateTINA);
+
 		return true;
+
 	},
+
+
 
 	// Internal stop method, called by stop and pause
+
 	_stopAutomaticUpdate: function () {
+
 		if (this._running === false) {
+
 			console.warn('[TINA.pause] TINA is not running');
+
 			return false;
+
 		}
+
+
 
 		// Stopping the animation loop
+
 		this._running = false;
+
 		return true;
+
 	},
+
+
 
 	pause: function () {
+
 		if (this._stopAutomaticUpdate() === false) {
+
 			return;
+
 		}
 
+
+
 		for (var handle = this._activeTweeners.first; handle !== null; handle = handle.next) {
+
 			handle.object._pause();
+
 		}
+
+
 
 		if (this._onPause !== null) {
+
 			this._onPause();
+
 		}
+
 		return this;
+
 	},
+
+
 
 	resume: function () {
+
 		if (this._startAutomaticUpdate() === false) {
+
 			return;
+
 		}
+
+
 
 		if (this._onResume !== null) {
+
 			this._onResume();
+
 		}
+
+
 
 		for (var handle = this._activeTweeners.first; handle !== null; handle = handle.next) {
+
 			handle.object._resume();
+
 		}
+
+
 
 		return this;
+
 	},
 
+
+
 	_initialisePauseOnLostFocus: function () {
+
 		if (this._pauseOnLostFocusInitialised === true) {
+
 			return;
+
 		}
+
+
 
 		if (document === undefined) {
+
 			// Document is not defined (TINA might be running on node.js)
+
 			console.warn('[TINA.pauseOnLostFocus] Cannot pause on lost focus because TINA is not running in a webpage (node.js does not allow this functionality)');
+
 			return;
+
 		}
+
+
 
 		// To handle lost of focus of the page
+
 		var hidden, visbilityChange; 
+
 		if (typeof document.hidden !== 'undefined') {
+
 			// Recent browser support 
+
 			hidden = 'hidden';
+
 			visbilityChange = 'visibilitychange';
+
 		} else if (typeof document.mozHidden !== 'undefined') {
+
 			hidden = 'mozHidden';
+
 			visbilityChange = 'mozvisibilitychange';
+
 		} else if (typeof document.msHidden !== 'undefined') {
+
 			hidden = 'msHidden';
+
 			visbilityChange = 'msvisibilitychange';
+
 		} else if (typeof document.webkitHidden !== 'undefined') {
+
 			hidden = 'webkitHidden';
+
 			visbilityChange = 'webkitvisibilitychange';
+
 		}
 
+
+
 		if (typeof document[hidden] === 'undefined') {
+
 			console.warn('[Tweener] Cannot pause on lost focus because the browser does not support the Page Visibility API');
+
 			return;
+
 		}
+
+
 
 		this._pauseOnLostFocusInitialised = true;
 
+
+
 		// Handle page visibility change
+
 		var wasRunning = false;
+
 		document.addEventListener(visbilityChange, function () {
+
 			if (document[hidden]) {
+
 				// document is hiding
+
 				wasRunning = TINA.isRunning();
+
 				if (wasRunning && TINA._pauseOnLostFocus) {
+
 					TINA.pause();
+
 				}
+
 			}
+
+
 
 			if (!document[hidden]) {
+
 				// document is back (we missed you buddy)
+
 				if (wasRunning && TINA._pauseOnLostFocus) {
+
 					// Running TINA only if it was running when the document focus was lost
+
 					TINA.resume();
+
 				}
+
 			}
+
 		}, false);
+
 	},
+
+
 
 	pauseOnLostFocus: function (pauseOnLostFocus) {
+
 		if (pauseOnLostFocus === true && this._pauseOnLostFocusInitialised === false) {
+
 			this._initialisePauseOnLostFocus();
+
 		}
+
+
 
 		this._pauseOnLostFocus = pauseOnLostFocus;
+
 		return this;
+
 	},
+
+
 
 	_add: function (tweener) {
+
 		// A tweener is starting
+
 		if (this._running === false) {
+
 			// TINA is not running, starting now
+
 			this.start();
+
 		}
 
+
+
 		if (tweener._handle === null) {
+
 			// Tweener can be added
+
 			tweener._handle = this._inactiveTweeners.add(tweener);
+
 			tweener._player = this;
+
 			return;
+
 		}
+
+
 
 		// Tweener is already handled
+
 		if (tweener._handle.container === this._tweenersToRemove) {
+
 			// Playable was being removed, removing from playables to remove
+
 			tweener._handle = this._tweenersToRemove.removeByReference(tweener._handle);
+
 			return;
+
 		}
+
 	},
+
+
 
 	add: function (tweener) {
+
 		this._add(tweener);
+
 		return this;
+
 	},
+
+
 
 	_inactivate: function (tweener) {
+
 		if (tweener._handle !== null) {
+
 			this._activePlayables.removeByReference(tweener._handle);
+
 		}
+
+
 
 		tweener._handle = this._inactivePlayables.addBack(tweener);
+
 	},
+
+
 
 	_remove: function (tweener) {
+
 		if (tweener._handle === null) {
+
 			return;
+
 		}
+
+
 
 		// Playable is handled, either by this player or by another one
+
 		if (tweener._handle.container === this._activeTweeners) {
+
 			// Tweener was active, adding to remove list
+
 			tweener._handle = this._tweenersToRemove.add(tweener._handle);
+
 			return;
+
 		}
+
+
 
 		if (tweener._handle.container === this._inactiveTweeners) {
+
 			// Tweener was inactive, removing from inactive tweeners
+
 			tweener._handle = this._inactiveTweeners.removeByReference(tweener._handle);
+
 			return;
+
 		}
+
 	},
+
+
 
 	remove: function (tweener) {
+
 		this._remove(tweener);
+
 		return this;
+
 	},
+
+
 
 	setDefaultTweener: function (tweener) {
+
 		this._defaultTweener = tweener;
+
 		return this;
+
 	},
+
+
 
 	getDefaultTweener: function () {
+
 		if (this._defaultTweener === null) {
+
 			// If a default tweener is required but none exist
+
 			// Then we create one
+
 			var DefaultTweener = this.Timer;
+
 			this._defaultTweener = new DefaultTweener();
+
 		}
 
+
+
 		return this._defaultTweener;
+
 	},
 
+
+
 	_startDefaultTweener: function () {
+
 		var defaultTweener = this.getDefaultTweener();
+
 		this._add(defaultTweener);
+
 		return defaultTweener;
+
 	}
+
 };
 
+
+
 module.exports = root.TINA = TINA;
+
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./DoublyList":8}],15:[function(require,module,exports){
 var Tweener = require('./Tweener');
 
+
+
 /**
+
  *
+
  * @classdesc
+
  * Tweener that manages the update of time independantly of the actual passing of time.
+
  * Every update, the time interval is equal to the given tupt (time units per tick).
+
  *
+
  */
+
 function Ticker(tupt) {
+
 	if ((this instanceof Ticker) === false) {
+
 		return new Ticker(tupt);
+
 	}
+
+
 
 	Tweener.call(this);
 
+
+
 	// Time units per tick (tupt)
+
 	// Every second, 'tupt' time units elapse
+
 	this.tupt = tupt || 1;
 
+
+
 }
+
 Ticker.prototype = Object.create(Tweener.prototype);
+
 Ticker.prototype.constructor = Ticker;
+
 module.exports = Ticker;
 
+
+
 Ticker.prototype._moveTo = function (time, dt) {
+
 	this._time += this.tupt;
 
+
+
 	// overwriting elapsed time since previous iteration
+
 	dt = this.tupt;
+
+
 
 	this._update(dt);
 
+
+
 	if (this._onUpdate !== null) {
+
 		this._onUpdate(this._time, dt);
+
 	}
+
 };
+
+
 
 Ticker.prototype.convertToTicks = function(timeUnits) {
+
 	return timeUnits / this.tupt;
+
 };
 
+
+
 Ticker.prototype.convertToTimeUnits = function(nbTicks) {
+
 	return nbTicks * this.tupt;
+
 };
+
 
 },{"./Tweener":21}],16:[function(require,module,exports){
 var BriefPlayer = require('./BriefPlayer');
 
+
+
 /**
+
  *
+
  * @classdesc
+
  * Manages tweening of one property or several properties of an object
+
  *
+
  * @param {object} element Object to tween
+
  * @param {string} property Property to tween
+
  * @param {number} a starting value of property
+
  * @param {number} b ending value of property
+
  *
+
  */
 
+
+
 function Timeline() {
+
 	if ((this instanceof Timeline) === false) {
+
 		return new Timeline();
+
 	}
+
+
 
 	BriefPlayer.call(this);
+
 }
+
 Timeline.prototype = Object.create(BriefPlayer.prototype);
+
 Timeline.prototype.constructor = Timeline;
+
 module.exports = Timeline;
 
+
+
 Timeline.prototype.add = function (playable, startTime) {
+
 	if (startTime === null || startTime === undefined) {
+
 		startTime = 0;
+
 	}
+
+
 
 	playable._setStartTime(startTime);
+
 	this._add(playable);
 
+
+
 	var endTime = playable._getEndTime();
+
 	if (endTime > this._duration) {
+
 		this._setDuration(endTime);
+
 	}
 
+
+
 	return this;
+
 };
 },{"./BriefPlayer":6}],17:[function(require,module,exports){
 var Tweener = require('./Tweener');
 
+
+
 /**
+
  *
+
  * @classdesc
+
  * Tweener that manages the update of time relatively to the actual passing of time.
+
  * Every update, the time interval is equal to the elapsed time in seconds multiplied by the tups (time units per second).
+
  *
+
  */
+
 function Timer(tups) {
+
 	if ((this instanceof Timer) === false) {
+
 		return new Timer(tups);
+
 	}
+
+
 
 	Tweener.call(this);
 
+
+
 	// Time units per second (tups)
+
 	// Every second, 'tups' time units elapse
+
 	this._speed = (tups / 1000) || 1;
+
 }
+
 Timer.prototype = Object.create(Tweener.prototype);
+
 Timer.prototype.constructor = Timer;
+
 module.exports = Timer;
 
+
+
 Object.defineProperty(Timer.prototype, 'tups', {
+
 	get: function () { return this._speed * 1000; },
+
 	set: function (tups) { this.speed = tups / 1000; }
+
 });
 
+
+
 Timer.prototype.convertToSeconds = function(timeUnits) {
+
 	return timeUnits / (this._speed * 1000);
+
 };
 
+
+
 Timer.prototype.convertToTimeUnits = function(seconds) {
+
 	return seconds * this._speed * 1000;
+
 };
 },{"./Tweener":21}],18:[function(require,module,exports){
 // The file is a good representation of the constant fight between maintainability and performance
+
 // For performance reasons several update methods are created
+
 // The appropriate method should be used for tweening. The selection depends on:
+
 // 	- The number of props to tween
+
 //  - Whether or not an easing is being used
+
 //  - Whether or not an interpolation is being used
 
+
+
 // One property
+
 function update(object, t) {
+
 	var p = this.prop;
+
 	object[p] = this.from[p] * (1 - t) + this.to[p] * t;
+
 }
 
+
+
 // Several Properties
+
 function updateP(object, t) {
+
 	var q = this.props;
+
 	for (var i = 0; i < this.props.length; i += 1) {
+
 		var p = q[i];
+
 		object[p] = this.from[p] * (1 - t) + this.to[p] * t;
+
 	}
+
 }
 
+
+
 // Interpolation
+
 function updateI(object, t) {
+
 	var p = this.prop;
+
 	object[p] = this.interps[p](t, this.from[p], this.to[p], this.interpParams[p]);
+
 }
 
+
+
 // Interpolation
+
 // Several Properties
+
 function updatePI(object, t) {
+
 	var q = this.props;
+
 	for (var i = 0; i < q.length; i += 1) {
+
 		var p = q[i];
+
 		object[p] = this.interps[p](t, this.from[p], this.to[p], this.interpParams[p]);
+
 	}
+
 }
 
+
+
 // Easing
+
 function updateE(object, t) {
+
 	t = this.easing(t, this.easingParam);
+
 	var p = this.prop;
+
 	object[p] = this.from[p] * (1 - t) + this.to[p] * t;
+
 }
 
+
+
 // Easing
+
 // Several Properties
+
 function updatePE(object, t) {
+
 	var q = this.props;
+
 	t = this.easing(t, this.easingParam);
+
 	for (var i = 0; i < q.length; i += 1) {
+
 		var p = q[i];
+
 		object[p] = this.from[p] * (1 - t) + this.to[p] * t;
+
 	}
+
 }
 
+
+
 // Easing
+
 // Interpolation
+
 function updateIE(object, t) {
+
 	var p = this.prop;
+
 	object[p] = this.interps[p](this.easing(t, this.easingParam), this.from[p], this.to[p], this.interpParams[p]);
+
 }
 
+
+
 // Easing
+
 // Interpolation
+
 // Several Properties
+
 function updatePIE(object, t) {
+
 	var q = this.props;
+
 	t = this.easing(t, this.easingParam);
+
 	for (var i = 0; i < q.length; i += 1) {
+
 		var p = q[i];
+
 		object[p] = this.interps[p](t, this.from[p], this.to[p], this.interpParams[p]);
+
 	}
+
 }
+
+
 
 var updateMethods = [
+
 	[
+
 		[update, updateP],
+
 		[updateI, updatePI]
+
 	], [
+
 		[updateE, updatePE],
+
 		[updateIE, updatePIE]
+
 	]
+
 ];
 
+
+
 function Transition(properties, from, to, start, duration, easing, easingParam, interpolations, interpolationParams) {
+
 	this.start    = start;
+
 	this.end      = start + duration;
+
 	this.duration = duration;
 
+
+
 	this.from = from;
+
 	this.to   = to;
 
+
+
 	// Easing flag - Whether an easing function is used
+
 	// 0 => Using linear easing
+
 	// 1 => Using custom easing
+
 	var easingFlag;
+
 	if (easing) {
+
 		easingFlag = 1;
+
 		this.easing = easing;
+
 		this.easingParam = easingParam;
+
 	} else {
+
 		easingFlag = 0;
+
 	}
+
+
 
 	// Interpolation flag - Whether an interpolation function is used
+
 	// 0 => No Interpolation
+
 	// 1 => At least one interpolation
+
 	var interpFlag;
+
 	if (interpolations === null) {
+
 		interpFlag = 0;
+
 	} else {
+
 		interpFlag = 1;
+
 		this.interps = interpolations;
+
 		this.interpParams = interpolationParams || {};
+
 	}
+
+
 
 	// Property flag - Whether the transition has several properties
+
 	// 0 => Only one property
+
 	// 1 => Several properties
+
 	var propsFlag;
+
 	if (properties.length === 1) {
+
 		propsFlag  = 0;
+
 		this.prop  = properties[0]; // string
+
 		this.props = null;
+
 	} else {
+
 		propsFlag  = 1;
+
 		this.prop  = null;
+
 		this.props = properties; // array
+
 	}
 
+
+
 	this.update = updateMethods[easingFlag][interpFlag][propsFlag];
+
 }
+
+
 
 module.exports = Transition;
 },{}],19:[function(require,module,exports){
 
+
 // One property
+
 function update(object, t) {
+
 	var p = this.prop;
+
 	var now = this.from[p] * (1 - t) + this.to[p] * t;
+
 	object[p] = object[p] + (now - this.prev);
+
 	this.prev = now;
+
 }
 
+
+
 // Several Properties
+
 function updateP(object, t) {
+
 	var q = this.props;
+
 	for (var i = 0; i < this.props.length; i += 1) {
+
 		var p = q[i];
+
 		var now = this.from[p] * (1 - t) + this.to[p] * t;
+
 		object[p] = object[p] + (now - this.prevs[p]);
+
 		this.prevs[p] = now;
+
 	}
+
 }
 
+
+
 // Interpolation
+
 function updateI(object, t) {
+
 	var p  = this.prop;
+
 	var now = this.interps[p](t, this.from[p], this.to[p], this.interpParams[p]);
+
 	object[p] = object[p] + (now - this.prev);
+
 	this.prev = now;
+
 }
 
+
+
 // Interpolation
+
 // Several Properties
+
 function updatePI(object, t) {
+
 	var q = this.props;
+
 	for (var i = 0; i < q.length; i += 1) {
+
 		var p = q[i];
+
 		var now = this.interps[p](t, this.from[p], this.to[p], this.interpParams[p]);
+
 		object[p] = object[p] + (now - this.prevs[p]);
+
 		this.prevs[p] = now;
+
 	}
+
 }
 
+
+
 // Easing
+
 function updateE(object, t) {
+
 	t = this.easing(t, this.easingParams);
+
 	var p = this.prop;
+
 	var now = this.from[p] * (1 - t) + this.to[p] * t;
+
 	object[p] = object[p] + (now - this.prev);
+
 	this.prev = now;
+
 }
 
+
+
 // Easing
+
 // Several Properties
+
 function updatePE(object, t) {
+
 	var q = this.props;
+
 	t = this.easing(t, this.easingParams);
+
 	for (var i = 0; i < q.length; i += 1) {
+
 		var p = q[i];
+
 		var now = this.from[p] * (1 - t) + this.to[p] * t;
+
 		object[p] = object[p] + (now - this.prevs[p]);
+
 		this.prevs[p] = now;
+
 	}
+
 }
 
+
+
 // Easing
+
 // Interpolation
+
 function updateIE(object, t) {
+
 	var p = this.prop;
+
 	var now = this.interps[p](this.easing(t, this.easingParams), this.from[p], this.to[p], this.interpParams[p]);
+
 	object[p] = object[p] + (now - this.prev);
+
 	this.prev = now;
+
 }
 
+
+
 // Easing
+
 // Interpolation
+
 // Several Properties
+
 function updatePIE(object, t) {
+
 	var q = this.props;
+
 	t = this.easing(t, this.easingParams);
+
 	for (var i = 0; i < q.length; i += 1) {
+
 		var p = q[i];
+
 		var now = this.interps[p](t, this.from[p], this.to[p], this.interpParams[p]);
+
 		object[p] = object[p] + (now - this.prevs[p]);
+
 		this.prevs[p] = now;
+
 	}
+
 }
+
+
 
 var updateMethods = [
+
 	[
+
 		[update, updateP],
+
 		[updateI, updatePI]
+
 	], [
+
 		[updateE, updatePE],
+
 		[updateIE, updatePIE]
+
 	]
+
 ];
 
+
+
 function Transition(properties, from, to, start, duration, easing, easingParam, interpolations, interpolationParams) {
+
 	this.start    = start;
+
 	this.end      = start + duration;
+
 	this.duration = duration;
 
+
+
 	this.from = from;
+
 	this.to   = to;
 
+
+
 	// Easing flag - Whether an easing function is used
+
 	// 0 => Using linear easing
+
 	// 1 => Using custom easing
+
 	var easingFlag;
+
 	if (easing) {
+
 		easingFlag = 1;
+
 		this.easing = easing;
+
 		this.easingParam = easingParam;
+
 	} else {
+
 		easingFlag = 0;
+
 	}
+
+
 
 	// Interpolation flag - Whether an interpolation function is used
+
 	// 0 => No Interpolation
+
 	// 1 => At least one interpolation
+
 	var interpFlag;
+
 	if (interpolations === null) {
+
 		interpFlag = 0;
+
 	} else {
+
 		interpFlag = 1;
+
 		this.interps = interpolations;
+
 		this.interpParams = interpolationParams || {};
+
 	}
+
+
 
 	// Property flag - Whether the transition has several properties
+
 	// 0 => Only one property
+
 	// 1 => Several properties
+
 	var propsFlag;
+
 	if (properties.length === 1) {
+
 		propsFlag  = 0;
+
 		this.prop  = properties[0]; // string
+
 		this.props = null;
+
 		this.prev  = 0;
+
 		this.prevs = null;
+
 	} else {
+
 		propsFlag  = 1;
+
 		this.prop  = null;
+
 		this.props = properties; // array
+
 		this.prev  = null;
+
 		this.prevs = {};
+
 		for (var p = 0; p < properties.length; p += 1) {
+
 			this.prevs[properties[p]] = 0;
+
 		}
+
 	}
 
+
+
 	this.update = updateMethods[easingFlag][interpFlag][propsFlag];
+
 }
+
+
 
 module.exports = Transition;
 },{}],20:[function(require,module,exports){
 var BriefPlayable = require('./BriefPlayable');
+
 var AbstractTween = require('./AbstractTween');
 
+
+
 var inherit = require('./inherit');
+
 /**
+
  *
+
  * @classdesc
+
  * Manages transition of properties of an object
+
  *
+
  * @param {object} object     - Object to tween
+
  * @param {array}  properties - Properties of the object to tween
+
  *
+
  */
+
 function Tween(object, properties) {
+
 	if ((this instanceof Tween) === false) {
+
 		return new Tween(object, properties);
+
 	}
 
+
+
 	BriefPlayable.call(this);
+
 	AbstractTween.call(this, object, properties);
+
 }
+
 Tween.prototype = Object.create(BriefPlayable.prototype);
+
 Tween.prototype.constructor = Tween;
+
 inherit(Tween, AbstractTween);
+
 module.exports = Tween;
 
 
+
+
+
 Tween.prototype.to = function (toObject, duration, easing, easingParam, interpolationParams) {
+
 	AbstractTween.prototype.to.call(this, toObject, duration, easing, easingParam, interpolationParams);
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 	return this;
+
 };
 
+
+
 Tween.prototype.wait = function (duration) {
+
 	AbstractTween.prototype.to.wait(this, duration);
+
 	if (this._player !== null) {
+
 		this._player._onPlayableChanged(this);
+
 	}
+
 	return this;
+
 };
 },{"./AbstractTween":3,"./BriefPlayable":5,"./inherit":24}],21:[function(require,module,exports){
 var Player = require('./Player');
+
 var TINA   = require('./TINA');
 
+
+
 /**
+
  * @classdesc
+
  * Manages the update of a list of playable with respect to a given elapsed time.
+
  */
+
 function Tweener() {
+
 	Player.call(this);
 
+
+
 	// TINA is the player for all the tweeners
+
 	this._player = TINA;
+
 }
+
 Tweener.prototype = Object.create(Player.prototype);
+
 Tweener.prototype.constructor = Tweener;
+
 module.exports = Tweener;
 
+
+
 Tweener.prototype._inactivate = function (playable) {
+
 	// In a tweener, playables are removed when inactivated
+
 	this._remove(playable);
+
 };
 
+
+
 Tweener.prototype.useAsDefault = function () {
+
 	TINA.setDefaultTweener(this);
+
 	return this;
+
 };
 },{"./Player":11,"./TINA":14}],22:[function(require,module,exports){
 /**
+
  *
+
  * @file A set of ease functions
+
  *
+
  * @author Brice Chevalier
+
  *
+
  * @param {Number} t Progress of the transition in [0, 1]
+
  * @param (Number) p Additional parameter, when required.
+
  *
+
  * @return {Number} Interpolated time
+
  *
+
  * @desc Ease functions
+
  *
+
  * Initial and final values of the ease functions are either 0 or 1.
+
  * All the ease functions are continuous for times t in [0, 1]
+
  *
+
  * Note: if you want a particular easing method to be added
+
  * create an issue or contribute at https://github.com/Wizcorp/tina.js
+
  */
 
+
+
 // Math constants (for readability)
+
 var PI          = Math.PI;
+
 var PI_OVER_TWO = Math.PI / 2;
+
 var TWO_PI      = Math.PI * 2;
+
 var EXP         = 2.718281828;
 
+
+
 // No easing
+
 exports.none = function () {
+
 	return 1;
+
 };
+
+
 
 // Linear
+
 exports.linear = function (t) {
+
 	return t;
+
 };
+
+
 
 // Flash style transition
+
 // ease in [-1, 1] for usage similar to flash
+
 // but works with ease in ]-Inf, +Inf[
+
 exports.flash = function (t, ease) {
+
 	return t + t * ease - t * t * ease;
+
 };
+
+
 
 // Parabolic
+
 exports.parabolic = function (t) {
+
 	var r = (2 * t - 1);
+
 	return 1 - r * r;
+
 };
+
+
 
 // Trigonometric, n = number of iterations in ]-Inf, +Inf[
+
 exports.trigo = function (t, n) {
+
 	return 0.5 * (1 - Math.cos(TWO_PI * t * n));
+
 };
 
+
+
 // Elastic, e = elasticity in ]0, +Inf[
+
 exports.elastic = function (t, e) {
+
 	if (t === 1) return 1;
+
 	e /= (e + 1); // transforming e
+
 	var n = (1 + e) * Math.log(1 - t) / Math.log(e);
+
 	return Math.cos(n - PI_OVER_TWO) * Math.pow(e, n);
+
 };
+
+
 
 // Quadratric
+
 exports.quadIn = function (t) { 
+
 	return t * t;
+
 };
+
+
 
 exports.quadOut = function (t) {
+
 	return 2 * t - t * t;
+
 };
+
+
 
 exports.quadInOut = function (t) {
+
 	if (t < 0.5) {
+
 		return 2 * t * t;
+
 	} else {
+
 		return 2 * (2 * t - t * t) - 1;
+
 	}
+
 };
+
+
 
 // Cubic
+
 exports.cubicIn = function (t) { 
+
 	return t * t * t;
+
 };
+
+
 
 exports.cubicOut = function (t) {
+
 	return 3 * t - 3 * t * t + t * t * t;
+
 };
+
+
 
 exports.cubicInOut = function (t) {
+
 	if (t < 0.5) {
+
 		return 4 * t * t * t;
+
 	} else {
+
 		return 4 * (3 * t - 3 * t * t + t * t * t) - 3;
+
 	}
+
 };
+
+
 
 // Quartic
+
 exports.quarticIn = function (t) { 
+
 	return t * t * t * t;
+
 };
+
+
 
 exports.quarticOut = function (t) {
+
 	var t2 = t * t;
+
 	return 4 * t - 6 * t2 + 4 * t2 * t - t2 * t2;
+
 };
+
+
 
 exports.quarticInOut = function (t) {
+
 	if (t < 0.5) {
+
 		return 8 * t * t * t * t;
+
 	} else {
+
 		var t2 = t * t;
+
 		return 8 * (4 * t - 6 * t2 + 4 * t2 * t - t2 * t2) - 7;
+
 	}
+
 };
+
+
 
 // Polynomial, p = power in ]0, + Inf[
+
 exports.polyIn = function (t, p) { 
+
 	return Math.pow(t, p);
+
 };
+
+
 
 exports.polyOut = function (t, p) {
+
 	return 1 - Math.pow(1 - t, p);
+
 };
+
+
 
 exports.polyInOut = function (t, p) {
+
 	if (t < 0.5) {
+
 		return Math.pow(2 * t, p) / 2;
+
 	} else {
+
 		return (2 - Math.pow(2 * (1 - t), p)) / 2;
+
 	}
+
 };
+
+
 
 // Sine
+
 exports.sineIn = function (t) {
+
 	return 1 - Math.cos(PI_OVER_TWO * t);
+
 };
+
+
 
 exports.sineOut = function (t) {
+
 	return Math.sin(PI_OVER_TWO * t);
+
 };
+
+
 
 exports.sineInOut = function (t) {
+
 	if (t < 0.5) {
+
 		return (1 - Math.cos(PI * t)) / 2;
+
 	} else {
+
 		return (1 + Math.sin(PI * (t - 0.5))) / 2;
+
 	}
+
 };
+
+
 
 // Exponential, e = exponent in ]0, + Inf[
+
 exports.expIn = function (t, e) {
+
 	return (1 - Math.pow(EXP, e * t)) / (1 - Math.pow(EXP, e));
+
 };
+
+
 
 exports.expOut = function (t, e) {
+
 	return (1 - Math.pow(EXP, - e * t)) / (1 - Math.pow(EXP, - e));
+
 };
+
+
 
 exports.expInOut = function (t, e) {
+
 	if (t < 0.5) {
+
 		return (1 - Math.pow(EXP, 2 * e * t)) / (1 - Math.pow(EXP, e)) / 2;
+
 	} else {
+
 		return 0.5 + (1 - Math.pow(EXP, e - 2 * e * t)) / (1 - Math.pow(EXP, - e)) / 2;
+
 	}
+
 };
+
+
 
 // Circular
+
 exports.circIn = function (t) {
+
 	return 1 - Math.sqrt(1 - Math.pow(t, 2));
+
 };
+
+
 
 exports.circOut = function (t) {
+
 	return Math.sqrt(1 - Math.pow(1 - t, 2));
+
 };
+
+
 
 exports.circInOut = function (t) {
+
 	if (t < 0.5) {
+
 		return (1 - Math.sqrt(1 - 4 * t * t)) / 2;
+
 	} else {
+
 		return (1 + Math.sqrt(-3 + 8 * t - 4 * t * t)) / 2;
+
 	}
+
 };
+
+
 
 // Elastic, e = elasticity in ]0, +Inf[
+
 exports.elasticIn = function (t, e) {
+
 	if (t === 0) { return 0; }
+
 	e /= (e + 1); // transforming e
+
 	var n = (1 + e) * Math.log(t) / Math.log(e);
+
 	return Math.cos(n) * Math.pow(e, n);
+
 };
+
+
 
 exports.elasticOut = function (t, e) {
+
 	if (t === 1) { return 1; }
+
 	e /= (e + 1); // transforming e
+
 	var n = (1 + e) * Math.log(1 - t) / Math.log(e);
+
 	return 1.0 - Math.cos(n) * Math.pow(e, n);
+
 };
+
+
 
 exports.elasticInOut = function (t, e) {
+
 	var n;
+
 	if (t < 0.5) {
+
 		if (t === 0) { return 0; }
+
 		e /= (e + 1); // transforming e
+
 		n = (1 + e) * Math.log(2 * t) / Math.log(e);
+
 		return 0.5 * Math.cos(n) * Math.pow(e, n);
+
 	}
 
+
+
 	if (t === 1) { return 1; }
+
 	e /= (e + 1); // transforming e
+
 	n = (1 + e) * Math.log(2 - 2 * t) / Math.log(e);
+
 	return 0.5 + 0.5 * (1.0 - Math.cos(n) * Math.pow(e, n));
+
 };
+
+
 
 // Bounce, e = elasticity in ]0, +Inf[
+
 exports.bounceIn = function (t, e) {
+
 	if (t === 0) { return 0; }
+
 	e /= (e + 1); // transforming e
+
 	var n = (1 + e) * Math.log(t) / Math.log(e);
+
 	return Math.abs(Math.cos(n) * Math.pow(e, n));
+
 };
+
+
 
 exports.bounceOut = function (t, e) {
+
 	if (t === 1) { return 1; }
+
 	e /= (e + 1); // transforming e
+
 	var n = (1 + e) * Math.log(1 - t) / Math.log(e);
+
 	return 1.0 - Math.abs(Math.cos(n) * Math.pow(e, n));
+
 };
+
+
 
 exports.bounceInOut = function (t, e) {
+
 	var n;
+
 	if (t < 0.5) {
+
 		if (t === 0) { return 0; }
+
 		e /= (e + 1); // transforming e
+
 		n = (1 + e) * Math.log(2 * t) / Math.log(e);
+
 		return Math.abs(0.5 * Math.cos(n) * Math.pow(e, n));
+
 	}
+
+
 
 	if (t === 1) { return 1; }
+
 	e /= (e + 1); // transforming e
+
 	n = (1 + e) * Math.log(2 - 2 * t) / Math.log(e);
+
 	return 0.5 + 0.5 * (1.0 - Math.abs(Math.cos(n) * Math.pow(e, n)));
+
 };
+
+
 
 // Back, e = elasticity in [0, +Inf[
+
 exports.backIn = function (t, e) {
+
 	return t * t * ((e + 1) * t - e);
+
 };
+
+
 
 exports.backOut = function (t, e) {
+
 	t -= 1;
+
 	return t * t * ((e + 1) * t + e) + 1;
+
 };
 
+
+
 exports.backInOut = function (t, e) {
+
 	if (t < 0.5) {
+
 		t *= 2;
+
 		return 0.5 * (t * t * ((e + 1) * t - e));
+
 	}
+
 	t = 2 * t - 2;
+
 	return 0.5 * (t * t * ((e + 1) * t + e)) + 1;
+
 };
+
 
 },{}],23:[function(require,module,exports){
 var TINA = require('./TINA.js');
 
+
+
 // TINA.CSSTween        = require('./CSSTween');
+
 TINA.Delay           = require('./Delay');
+
 TINA.BriefExtension  = require('./BriefExtension');
+
 TINA.BriefPlayable   = require('./BriefPlayable');
+
 TINA.BriefPlayer     = require('./BriefPlayer');
+
 TINA.easing          = require('./easing');
+
 TINA.interpolation   = require('./interpolation');
+
 TINA.NestedTween     = require('./NestedTween');
+
 TINA.PixiTween       = require('./NestedTween');
+
 TINA.Playable        = require('./Playable');
+
 TINA.Player          = require('./Player');
+
 TINA.Recorder        = require('./Recorder');
+
 TINA.Sequence        = require('./Sequence');
+
 TINA.Ticker          = require('./Ticker');
+
 TINA.Timeline        = require('./Timeline');
+
 TINA.Timer           = require('./Timer');
+
 TINA.Tween           = require('./Tween');
+
 TINA.Tweener         = require('./Tweener');
+
+
 
 module.exports = TINA;
 
+
 },{"./BriefExtension":4,"./BriefPlayable":5,"./BriefPlayer":6,"./Delay":7,"./NestedTween":9,"./Playable":10,"./Player":11,"./Recorder":12,"./Sequence":13,"./TINA.js":14,"./Ticker":15,"./Timeline":16,"./Timer":17,"./Tween":20,"./Tweener":21,"./easing":22,"./interpolation":25}],24:[function(require,module,exports){
 module.exports = function (subobject, superobject) {
+
 	var prototypes = Object.keys(superobject.prototype);
+
 	for (var p = 0; p < prototypes.length; p += 1) {
+
 		var prototypeName = prototypes[p];
+
 		subobject.prototype[prototypeName] = superobject.prototype[prototypeName];
+
 	}
+
 };
 },{}],25:[function(require,module,exports){
 /**
+
  *
+
  * @file A set of interpolation functions
+
  *
+
  * @author Brice Chevalier
+
  *
+
  * @param {Number} t Progress of the transition in [0, 1]
+
  * @param (Number) a Value to interpolate from
+
  * @param (Number) b Value to interpolate to
+
  * @param (Number) p Additional parameter
+
  *
+
  * @return {Number} Interpolated value
+
  *
+
  * @desc Interpolation functions
+
  * Define how to interpolate between object a and b.
+
  * 
+
  * Note: if you want a particular interpolation method to be added
+
  * create an issue or contribute at https://github.com/Wizcorp/tina.js
+
  */
+
+
 
 // TODO: Test them all!
 
+
+
 exports.none = function (t, a, b) {
+
 	return b;
+
 };
+
+
 
 exports.linear = function (t, a, b) {
+
 	return a * (1 - t) + b * t;
+
 };
+
+
 
 // d = discretization
+
 exports.discrete = function (t, a, b, d) {
+
 	if (d === undefined) { d = 1; }
+
 	return Math.floor((a * (1 - t) + b * t) / d) * d;
+
 };
+
+
 
 exports.vectorXY = function (t, a, b) {
+
 	return {
+
 		x: a.x * (1 - t) + b.x * t,
+
 		y: a.y * (1 - t) + b.y * t
+
 	};
+
 };
+
+
 
 exports.vectorXYZ = function (t, a, b) {
+
 	return {
+
 		x: a.x * (1 - t) + b.x * t,
+
 		y: a.y * (1 - t) + b.y * t,
+
 		z: a.z * (1 - t) + b.z * t
+
 	};
+
 };
+
+
 
 // a, b = vectors
+
 exports.vector = function (t, a, b) {
+
 	var c = [];
+
 	for (var i = 0; i < a.length; i += 1) {
+
 		c[i] = a[i] * (1 - t) + b[i] * t;
+
 	}
+
 	return c;
+
 };
+
+
 
 // a, b = states, c = array of intermediary states
+
 exports.state = function (t, a, b, c) {
+
 	var nbStates = b.length + 2;
+
 	var stateIdx = Math.floor(t * nbStates);
+
 	if (stateIdx < 1) { return a; }
+
 	if (stateIdx >= (nbStates - 1)) { return b; }
+
 	return c[stateIdx - 1];
+
 };
+
+
 
 // a, b = colors
+
 exports.colorRGB = function (t, a, b) {
+
 	return {
+
 		r: a.r * (1 - t) + b.r * t,
+
 		g: a.g * (1 - t) + b.g * t,
+
 		b: a.b * (1 - t) + b.b * t
+
 	};
+
 };
+
+
 
 exports.colorRGBA = function (t, a, b) {
+
 	return {
+
 		r: a.r * (1 - t) + b.r * t,
+
 		g: a.g * (1 - t) + b.g * t,
+
 		b: a.b * (1 - t) + b.b * t,
+
 		a: a.a * (1 - t) + b.a * t
+
 	};
+
 };
+
+
 
 exports.colorRGBToHexa = function (t, a, b) {
+
 	var cr = Math.round(a.r * (1 - t) + b.r * t);
+
 	var cg = Math.round(a.g * (1 - t) + b.g * t);
+
 	var cb = Math.round(a.b * (1 - t) + b.b * t);
+
+
 
 	return '#' + cr.toString(16) + cg.toString(16) + cb.toString(16);
+
 };
+
+
 
 exports.colorRGBToString = function (t, a, b) {
+
 	var cr = Math.round(a.r * (1 - t) + b.r * t);
+
 	var cg = Math.round(a.g * (1 - t) + b.g * t);
+
 	var cb = Math.round(a.b * (1 - t) + b.b * t);
+
+
 
 	return 'rgb(' + cr.toString(16) + ',' + cg.toString(16) + ',' + cb.toString(16) + ')';
+
 };
+
+
 
 exports.colorRGBAToString = function (t, a, b) {
+
 	var cr = Math.round(a.r * (1 - t) + b.r * t);
+
 	var cg = Math.round(a.g * (1 - t) + b.g * t);
+
 	var cb = Math.round(a.b * (1 - t) + b.b * t);
+
 	var ca = Math.round(a.a * (1 - t) + b.a * t);
 
+
+
 	return 'rgba(' + cr.toString(16) + ',' + cg.toString(16) + ',' + cb.toString(16) + ',' + ca + ')';
+
 };
+
+
 
 // Interpolation between 2 strings a and b (yes that's possible)
+
 // Returns a string of the same size as b
+
 exports.string = function (t, a, b) {
+
 	var nbCharsA = a.length;
+
 	var nbCharsB = b.length;
+
 	var newString = '';
 
+
+
 	for (var c = 0; c < nbCharsB; c += 1) {
+
 		// Simple heuristic:
+
 		// if charCodeB is closer to a capital letter
+
 		// then charCodeA corresponds to an "A"
+
 		// otherwise chardCodeA corresponds to an "a"
+
 		var charCodeB = b.charCodeAt(c);
+
 		var charCodeA = (c >= nbCharsA) ? ((charCodeB < 97) ? 65 : 97) : a.charCodeAt(c);
 
+
+
 		var charCode = Math.round(charCodeA * (1 - t) + charCodeB * t);
+
 		newString += String.fromCharCode(charCode);
+
 	}
+
+
 
 	return newString;
+
 };
+
+
 
 // Bezier, c = array of control points in ]-Inf, +Inf[
+
 exports.bezierQuadratic = function (t, a, b, c) {
+
 	var u = 1 - t;
+
 	return u * u * a + t * (2 * u * c[0] + t * b);
+
 };
+
+
 
 exports.bezierCubic = function (t, a, b, c) {
+
 	var u = 1 - t;
+
 	return u * u * u * a + t * (3 * u * u * c[0] + t * (3 * u * c[1] + t * b));
+
 };
+
+
 
 exports.bezierQuartic = function (t, a, b, c) {
+
 	var u = 1 - t;
+
 	var u2 = 2 * u;
+
 	return u2 * u2 * a + t * (4 * u * u2 * c[0] + t * (6 * u2 * c[1] + t * (4 * u * c[2] + t * b)));
+
 };
+
+
 
 exports.bezierQuintic = function (t, a, b, c) {
+
 	var u = 1 - t;
+
 	var u2 = 2 * u;
+
 	return u2 * u2 * u * a + t * (5 * u2 * u2 * c[0] + t * (10 * u * u2 * c[1] + t * (10 * u2 * c[2] + t * (5 * u * c[3] + t * b))));
+
 };
+
+
 
 exports.bezier = function (t, a, b, c) {
+
 	var n = c.length;
+
 	var u = 1 - t;
+
 	var x = b;
 
+
+
 	var term = n;
+
 	for (k = 1; k < n; k -= 1) {
+
 		x = x * t + term * Math.pow(u, k) * c[n - k];
+
 		term *= (n - k) / (k + 1);
+
 	}
+
+
 
 	return x * t + a * Math.pow(u, n);
+
 };
+
+
 
 // Bezier 2D, c = array of control points in ]-Inf, +Inf[ ^ 2
+
 exports.bezier2d = function (t, a, b, c) {
+
 	var n = c.length;
+
 	var u = 1 - t;
+
 	var x = b[0];
+
 	var y = b[1];
 
+
+
 	var p, q;
+
 	var term = n;
+
 	for (var k = 1; k < n; k -= 1) {
+
 		p = term * Math.pow(u, k);
+
 		q = c[n - k];
+
 		x = x * t + p * q[0];
+
 		y = y * t + p * q[1];
+
 		term *= (n - k) / (k + 1);
+
 	}
 
+
+
 	p = Math.pow(u, n);
+
 	return [
+
 		x * t + a[0] * p,
+
 		y * t + a[1] * p
+
 	];
+
 };
+
+
 
 // Bezier 3D, c = array of control points in ]-Inf, +Inf[ ^ 3
+
 exports.bezier3d = function (t, a, b, c) {
+
 	var n = c.length;
+
 	var u = 1 - t;
+
 	var x = b[0];
+
 	var y = b[1];
+
 	var z = b[2];
 
+
+
 	var p, q;
+
 	var term = n;
+
 	for (var k = 1; k < n; k -= 1) {
+
 		p = term * Math.pow(u, k);
+
 		q = c[n - k];
+
 		x = x * t + p * q[0];
+
 		y = y * t + p * q[1];
+
 		z = z * t + p * q[2];
+
 		term *= (n - k) / (k + 1);
+
 	}
 
+
+
 	p = Math.pow(u, n);
+
 	return [
+
 		x * t + a[0] * p,
+
 		y * t + a[1] * p,
+
 		z * t + a[2] * p
+
 	];
+
 };
+
+
 
 // Bezier k-dimensions, c = array of control points in ]-Inf, +Inf[ ^ k
+
 exports.bezierKd = function (t, a, b, c) {
+
 	var n = c.length;
+
 	var u = 1 - t;
+
 	var k = a.length;
 
+
+
 	var res = [];
+
 	for (var i = 0; i < k; i += 1) {
+
 		res[i] = b[i];
+
 	}
+
+
 
 	var p, q;
+
 	var term = n;
+
 	for (var l = 1; l < n; l -= 1) {
+
 		p = term * Math.pow(u, l);
+
 		q = c[n - l];
 
+
+
 		for (i = 0; i < k; i += 1) {
+
 			res[i] = res[i] * t + p * q[i];
+
 		}
 
+
+
 		term *= (n - l) / (l + 1);
+
 	}
+
+
 
 	p = Math.pow(u, n);
+
 	for (i = 0; i < k; i += 1) {
+
 		res[i] = res[i] * t + a[i] * p;
+
 	}
 
+
+
 	return res;
+
 };
+
+
 
 // CatmullRom, b = array of control points in ]-Inf, +Inf[
+
 exports.catmullRom = function (t, a, b, c) {
+
 	if (t === 1) {
+
 		return c;
+
 	}
+
+
 
 	// Finding index corresponding to current time
+
 	var k = a.length;
+
 	var n = b.length + 1;
+
 	t *= n;
+
 	var i = Math.floor(t);
+
 	t -= i;
 
+
+
 	var t2 = t * t;
+
 	var t3 = t * t2;
+
 	var w = -0.5 * t3 + 1.0 * t2 - 0.5 * t;
+
 	var x =  1.5 * t3 - 2.5 * t2 + 1.0;
+
 	var y = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
+
 	var z =  0.5 * t3 - 0.5 * t2;
 
+
+
 	var i0 = i - 2;
+
 	var i1 = i - 1;
+
 	var i2 = i;
+
 	var i3 = i + 1;
 
+
+
 	var p0 = (i0 < 0) ? a : b[i0];
+
 	var p1 = (i1 < 0) ? a : b[i1];
+
 	var p2 = (i3 < n - 2) ? b[i2] : c;
+
 	var p3 = (i3 < n - 2) ? b[i3] : c;
 
+
+
 	var res = [];
+
 	for (var j = 0; j < k; j += 1) {
+
 		res[j] = p0[j] * w + p1[j] * x + p2[j] * y + p3[j] * z;
+
 	}
 
+
+
 	return res;
+
 };
 
+
+
 // Noises functions! (you are welcome)
+
 // Only 1d and 2d for now, if any request for 3d then I will add it to the list
 
+
+
 // Creating a closure for the noise function to make 'perm' and 'grad' only accessible to it
+
 exports.noise = (function () {
+
 	// permutation table
+
 	var perm = [
+
 		182, 235, 131, 26, 88, 132, 100, 117, 202, 176, 10, 19, 83, 243, 75, 52,
+
 		252, 194, 32, 30, 72, 15, 124, 53, 236, 183, 121, 103, 175, 39, 253, 120,
+
 		166, 33, 237, 141, 99, 180, 18, 143, 69, 136, 173, 21, 210, 189, 16, 142,
+
 		190, 130, 109, 186, 104, 80, 62, 51, 165, 25, 122, 119, 42, 219, 146, 61,
+
 		149, 177, 54, 158, 27, 170, 60, 201, 159, 193, 203, 58, 154, 222, 78, 138,
+
 		220, 41, 98, 14, 156, 31, 29, 246, 81, 181, 40, 161, 192, 227, 35, 241,
+
 		135, 150, 89, 68, 134, 114, 230, 123, 187, 179, 67, 217, 71, 218, 7, 148,
+
 		228, 251, 93, 8, 140, 125, 73, 37, 82, 28, 112, 24, 174, 118, 232, 137,
+
 		191, 133, 147, 245, 6, 172, 95, 113, 185, 205, 254, 116, 55, 198, 57, 152,
+
 		128, 233, 74, 225, 34, 223, 79, 111, 215, 85, 200, 9, 242, 12, 167, 44,
+
 		20, 110, 107, 126, 86, 231, 234, 76, 207, 102, 214, 238, 221, 145, 213, 64,
+
 		197, 38, 168, 157, 87, 92, 255, 212, 49, 196, 240, 90, 63, 0, 77, 94,
+
 		1, 108, 91, 17, 224, 188, 153, 250, 249, 199, 127, 59, 46, 184, 36, 43,
+
 		209, 206, 248, 4, 56, 47, 226, 13, 144, 22, 11, 247, 70, 244, 48, 97,
+
 		151, 195, 96, 101, 45, 66, 239, 178, 171, 160, 84, 65, 23, 3, 211, 162,
+
 		163, 50, 105, 129, 155, 169, 115, 5, 106, 2, 208, 204, 139, 229, 164, 216,
+
 		182
+
 	];
 
+
+
 	// gradients
+
 	var grad = [-1, 1];
 
+
+
 	return function (t, a, b, p) {
+
 		var amp = 2.0;   // amplitude
+
 		var per = p.per || 1; // persistance
+
 		var frq = p.frq || 2; // frequence
+
 		var oct = p.oct || 4; // octaves
+
 		var off = p.off || 0; // offset
 
+
+
 		var c = 0;
+
 		var x = p.x + off;
+
+
 
 		for (var o = 0; o < oct; o += 1) {
 
+
+
 			var i = (x | x) & 255;
+
 			var x1 = x - (x | x);
+
 			var x0 = 1.0 - x1;
+
+
 
 			c += amp * (x0 * x0 * x1 * (3 - 2 * x0) * grad[perm[i] & 1] - x1 * x1 * x0 * (3 - 2 * x1) * grad[perm[i + 1] & 1]);
 
+
+
 			x *= (x - off) * frq + off;
+
 			amp *= per;
+
 		}
 
+
+
 		// Scaling the result
+
 		var scale = ((per === 1) ? 1 / oct : 0.5 * (1 - per) / (1 - Math.pow(per, oct)));
+
 		t = t + c * scale;
+
 		return a * (1 - t) + b * t;
+
 	};
+
 })();
 
+
+
 exports.simplex2d = (function () {
+
 	// permutation table
+
 	var perm = [
+
 		182, 235, 131, 26, 88, 132, 100, 117, 202, 176, 10, 19, 83, 243, 75, 52,
+
 		252, 194, 32, 30, 72, 15, 124, 53, 236, 183, 121, 103, 175, 39, 253, 120,
+
 		166, 33, 237, 141, 99, 180, 18, 143, 69, 136, 173, 21, 210, 189, 16, 142,
+
 		190, 130, 109, 186, 104, 80, 62, 51, 165, 25, 122, 119, 42, 219, 146, 61,
+
 		149, 177, 54, 158, 27, 170, 60, 201, 159, 193, 203, 58, 154, 222, 78, 138,
+
 		220, 41, 98, 14, 156, 31, 29, 246, 81, 181, 40, 161, 192, 227, 35, 241,
+
 		135, 150, 89, 68, 134, 114, 230, 123, 187, 179, 67, 217, 71, 218, 7, 148,
+
 		228, 251, 93, 8, 140, 125, 73, 37, 82, 28, 112, 24, 174, 118, 232, 137,
+
 		191, 133, 147, 245, 6, 172, 95, 113, 185, 205, 254, 116, 55, 198, 57, 152,
+
 		128, 233, 74, 225, 34, 223, 79, 111, 215, 85, 200, 9, 242, 12, 167, 44,
+
 		20, 110, 107, 126, 86, 231, 234, 76, 207, 102, 214, 238, 221, 145, 213, 64,
+
 		197, 38, 168, 157, 87, 92, 255, 212, 49, 196, 240, 90, 63, 0, 77, 94,
+
 		1, 108, 91, 17, 224, 188, 153, 250, 249, 199, 127, 59, 46, 184, 36, 43,
+
 		209, 206, 248, 4, 56, 47, 226, 13, 144, 22, 11, 247, 70, 244, 48, 97,
+
 		151, 195, 96, 101, 45, 66, 239, 178, 171, 160, 84, 65, 23, 3, 211, 162,
+
 		163, 50, 105, 129, 155, 169, 115, 5, 106, 2, 208, 204, 139, 229, 164, 216,
+
 		182, 235, 131, 26, 88, 132, 100, 117, 202, 176, 10, 19, 83, 243, 75, 52,
+
 		252, 194, 32, 30, 72, 15, 124, 53, 236, 183, 121, 103, 175, 39, 253, 120,
+
 		166, 33, 237, 141, 99, 180, 18, 143, 69, 136, 173, 21, 210, 189, 16, 142,
+
 		190, 130, 109, 186, 104, 80, 62, 51, 165, 25, 122, 119, 42, 219, 146, 61,
+
 		149, 177, 54, 158, 27, 170, 60, 201, 159, 193, 203, 58, 154, 222, 78, 138,
+
 		220, 41, 98, 14, 156, 31, 29, 246, 81, 181, 40, 161, 192, 227, 35, 241,
+
 		135, 150, 89, 68, 134, 114, 230, 123, 187, 179, 67, 217, 71, 218, 7, 148,
+
 		228, 251, 93, 8, 140, 125, 73, 37, 82, 28, 112, 24, 174, 118, 232, 137,
+
 		191, 133, 147, 245, 6, 172, 95, 113, 185, 205, 254, 116, 55, 198, 57, 152,
+
 		128, 233, 74, 225, 34, 223, 79, 111, 215, 85, 200, 9, 242, 12, 167, 44,
+
 		20, 110, 107, 126, 86, 231, 234, 76, 207, 102, 214, 238, 221, 145, 213, 64,
+
 		197, 38, 168, 157, 87, 92, 255, 212, 49, 196, 240, 90, 63, 0, 77, 94,
+
 		1, 108, 91, 17, 224, 188, 153, 250, 249, 199, 127, 59, 46, 184, 36, 43,
+
 		209, 206, 248, 4, 56, 47, 226, 13, 144, 22, 11, 247, 70, 244, 48, 97,
+
 		151, 195, 96, 101, 45, 66, 239, 178, 171, 160, 84, 65, 23, 3, 211, 162,
+
 		163, 50, 105, 129, 155, 169, 115, 5, 106, 2, 208, 204, 139, 229, 164, 216
+
 	];
+
+
 
 	// gradients
+
 	var grad = [
+
 		[1,1], [-1,1], [1,-1], [-1,-1],
+
 		[1,0], [-1,0], [1,0], [-1,0],
+
 		[0,1], [0,-1], [0,1], [0,-1],
+
 		[1,1], [-1,1], [1,-1], [-1,-1]
+
 	];
 
+
+
 	function dot2D(g, x, y) {
+
 		return g[0] * x + g[1] * y;
+
 	}
 
+
+
 	return function (t, a, b, p) {
+
 		var amp = 2.0; // amplitude
+
 		var per = p.per || 1; // persistance
+
 		var frq = p.frq || 2; // frequence
+
 		var oct = p.oct || 4; // octaves
+
 		var off = p.off || { x: 0, y: 0 }; // offset
 
+
+
 		var c = c;
+
 		var x = p.x + off.x;
+
 		var y = p.y + off.y;
 
+
+
 		for (var o = 0; o < oct; o += 1) {
+
 			var n0, n1, n2; // Noise contributions from the three corners
 
+
+
 			// Skew the input space to determine which simplex cell we're in
+
 			var f2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+
 			var s = (x + y) * f2; // Hairy factor for 2D
+
 			var i = Math.floor(x + s);
+
 			var j = Math.floor(y + s);
+
 			var g2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+
 			var r = (i + j) * g2;
 
+
+
 			var x0 = i - r; // Unskew the cell origin back to (x, y) space
+
 			var y0 = j - r;
+
 			x0 = x - x0; // The x, y distances from the cell origin
+
 			y0 = y - y0;
 
+
+
 			// For the 2D case, the simplex shape is an equilateral triangle.
+
 			// Determine which simplex we are in.
+
 			var i1, j1; // Offsets for second (middle) corner of simplex in (i, j) coords
+
 			if (x0 > y0) {
+
 				i1 = 1; j1 = 0; // lower triangle, XY order: (0, 0) -> (1, 0) -> (1, 1)
+
 			} else {
+
 				i1 = 0; j1 = 1; // upper triangle, YX order: (0, 0) -> (0, 1) -> (1, 1)
+
 			}
+
+
 
 			// A step of (1, 0) in (i, j) means a step of (1 - c, -c) in (x, y), and
+
 			// a step of (0, 1) in (i, j) means a step of (-c, 1 - c) in (x, y), where
+
 			// c = (3 - sqrt(3)) / 6
+
 			var x1 = x0 - i1 + g2; // Offsets for middle corner in (x, y) unskewed coords
+
 			var y1 = y0 - j1 + g2;
+
 			var x2 = x0 - 1.0 + 2.0 * g2; // Offsets for last corner in (x, y) unskewed coords
+
 			var y2 = y0 - 1.0 + 2.0 * g2;
 
+
+
 			// Working out the hashed gradient indices of the three simplex corners
+
 			var ii = i & 255;
+
 			var jj = j & 255;
 
+
+
 			// Calculating the contribution from the three corners
+
 			var t0 = 0.5 - x0 * x0 - y0 * y0;
+
 			var t1 = 0.5 - x1 * x1 - y1 * y1;
+
 			var t2 = 0.5 - x2 * x2 - y2 * y2;
 
+
+
 			if (t0 < 0) {
+
 				n0 = 0.0;
+
 			} else {
+
 				var gi0 = perm[ii + perm[jj]] & 15;
+
 				t0 *= t0;
+
 				n0 = t0 * t0 * dot2D(grad[gi0], x0, y0);
+
 			}
+
+
 
 			if (t1 < 0) {
+
 				n1 = 0.0;
+
 			} else {
+
 				var gi1 = perm[ii + i1 + perm[jj + j1]] & 15;
+
 				t1 *= t1;
+
 				n1 = t1 * t1 * dot2D(grad[gi1], x1, y1);
+
 			}
+
+
 
 			if (t2 < 0) {
+
 				n2 = 0.0;
+
 			} else {
+
 				var gi2 = perm[ii + 1 + perm[jj + 1]] & 15;
+
 				t2 *= t2;
+
 				n2 = t2 * t2 * dot2D(grad[gi2], x2, y2);
+
 			}
 
+
+
 			// Adding contributions from each corner to get the final noise value.
+
 			// The result is scaled to return values in the interval [-amp, amp]
+
 			c += amp * 70.0 * (n0 + n1 + n2);
 
+
+
 			x *= (x - off.x) * frq + off.x;
+
 			y *= (y - off.y) * frq + off.y;
+
 			amp *= per;
+
 		}
 
+
+
 		// Scaling the result
+
 		var scale = ((per === 1) ? 1 / oct : 0.5 * (1 - per) / (1 - Math.pow(per, oct)));
+
 		t = t + c * scale;
+
 		return a * (1 - t) + b * t;
+
 	};
+
 })();
 },{}],26:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /** Texture
+
  * @author Cedric Stoquer
+
  */
 
+
+
 var settings = require('../../settings.json');
+
 var SPRITE_WIDTH  = settings.spriteSize[0];
+
 var SPRITE_HEIGHT = settings.spriteSize[1];
+
 var SPRITES_PER_LINE = 16;
 
+
+
 function createCanvas(width, height) {
+
 	var canvas = document.createElement('canvas');
+
 	canvas.width  = width;
+
 	canvas.height = height;
+
 	return canvas;
+
 }
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 function Texture(width, height) {
+
 	this.canvas  = createCanvas(width, height);
+
 	this.ctx     = this.canvas.getContext('2d');
+
 	this._cursor = { i: 0, j: 0 };
+
 	this._paper  = 0;
+
 	this._pen    = 1;
 
+
+
 	this._textColumn  = ~~(width  / 4);
+
 	this._textLine    = ~~(height / 6);
+
 	this._textOffset  = 1; // TODO
+
 	this._textPadding = height - this._textLine * 6 - this._textOffset;
 
+
+
 	// camera offset
+
 	this.camera = { x: 0, y: 0 };
 
+
+
 	this.ctx.fillStyle   = this.palette[0];
+
 	this.ctx.strokeStyle = this.palette[1];
+
 }
+
 module.exports = Texture;
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype._isTexture = true;
 
+
+
 // FIXME better have all these private
+
 Texture.prototype.palette = ['#000000', '#FFFFFF']; // default palette
+
 Texture.prototype.spritesheet = new Texture(SPRITE_WIDTH * SPRITES_PER_LINE, SPRITE_HEIGHT * SPRITES_PER_LINE);
+
 Texture.prototype.textCharset = new Texture(128 * 3, 5 * Texture.prototype.palette.length);
 
 
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Texture.prototype.resize = function (width, height) {
-	this.canvas.width  = width;
-	this.canvas.height = height;
-	this._textColumn = ~~(width  / 4);
-	this._textLine   = ~~(height / 6);
-	this._textOffset = 1; // TODO
-	this._cursor.i = 0;
-	this._cursor.j = 0;
-	this.clear();
-};
+
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Texture.prototype.resize = function (width, height) {
+
+	this.canvas.width  = width;
+
+	this.canvas.height = height;
+
+	this._textColumn = ~~(width  / 4);
+
+	this._textLine   = ~~(height / 6);
+
+	this._textOffset = 1; // TODO
+
+	this._cursor.i = 0;
+
+	this._cursor.j = 0;
+
+	this.clear();
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // text charset generation
 
+
+
 function getTextCharcodes(texture) {
+
 	var canvas = texture.canvas;
+
 	var ctx = texture.ctx;
+
 	var charcodes = [];
+
 	for (var chr = 0; chr < 128; chr++) {
+
 		var imageData = ctx.getImageData(chr * 3, 0, 3, 5);
+
 		var pixels = imageData.data;
+
 		var code = 0;
+
 		var bit = 0;
+
 		for (var i = 0, len = pixels.length; i < len; i += 4) {
+
 			var pixel = pixels[i]; // only the first pixel is enough
+
 			if (pixel > 0) code += 1 << bit;
+
 			bit += 1;
+
 		}
+
 		charcodes.push(code);
+
 	}
+
 	return charcodes;
+
 }
 
+
+
 function generateTextCharset(ctx, palette) {
+
 	var codes = [
+
 		219,438,511,14016,14043,14326,14335,28032,28123,28086,28159,32704,32731,
+
 		32758,32767,128,146,384,402,9344,9362,9600,9618,192,210,448,466,9408,9426,
+
 		9664,9682,32767,0,8338,45,11962,5588,21157,29354,10,17556,5265,21973,1488,
+
 		5312,448,13824,5268,31599,29843,29671,31143,18925,31183,31689,18735,31727,
+
 		18927,1040,5136,17492,3640,5393,8359,25450,23530,31467,25166,15211,29391,
+
 		4815,27470,23533,29847,15142,23277,29257,23421,23403,11114,4843,26474,
+
 		23279,14798,9367,27501,12141,24429,23213,14829,29351,25750,17553,13459,
+
 		9402,28672,34,23530,31467,25166,15211,29391,4815,27470,23533,29847,15142,
+
 		23277,29257,23421,23403,11114,4843,26474,23279,14798,9367,27501,12141,
+
 		24429,23213,14829,29351,25686,9362,13587,42,21845
+
 	];
 
+
+
 	for (var pen = 0; pen < palette.length; pen++) {
+
 		ctx.fillStyle = palette[pen];
+
 		for (var i = 0; i < codes.length; i++) {
+
 			var code = codes[i];
+
 			for (var bit = 0; bit < 15; bit++) {
+
 				var x = bit % 3;
+
 				var y = ~~(bit / 3);
+
 				var pixel = (code >> bit) & 1;
+
 				if (pixel !== 1) continue;
+
 				ctx.fillRect(i * 3 + x, pen * 5 + y, 1, 1);
+
 			}
+
 		}
+
 	}
+
 	ctx.fillStyle = palette[0];
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.setPalette = function (palette) {
+
 	Texture.prototype.palette = palette;
+
 	Texture.prototype.textCharset = new Texture(128 * 3, 5 * palette.length);
+
 	generateTextCharset(Texture.prototype.textCharset.ctx, palette);
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.setGlobalSpritesheet = function (spritesheet) {
+
 	Texture.prototype.spritesheet.clear().draw(spritesheet, 0, 0);
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.setSpritesheet = function (spritesheet) {
+
 	if (!spritesheet) {
+
 		delete this.spritesheet;
+
 		return;
+
 	} 
+
 	if (this.spritesheet === Texture.prototype.spritesheet) {
+
 		this.spritesheet = new Texture(SPRITE_WIDTH * SPRITES_PER_LINE, SPRITE_HEIGHT * SPRITES_PER_LINE);
+
 	}
+
 	this.spritesheet.clear().draw(spritesheet, 0, 0);
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.setCamera = function (x, y) {
+
 	this.camera.x = x || 0;
+
 	this.camera.y = y || 0;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 var PI2 = Math.PI / 2;
 
+
+
 Texture.prototype.sprite = function (sprite, x, y, flipH, flipV, rot) {
+
 	var sx = sprite % SPRITES_PER_LINE;
+
 	var sy = ~~(sprite / SPRITES_PER_LINE);
+
 	var ctx = this.ctx;
+
+
 
 	// add camera and round to the pixel
+
 	x = x || 0;
+
 	y = y || 0;
+
 	x = ~~Math.round(x - this.camera.x);
+
 	y = ~~Math.round(y - this.camera.y);
 
+
+
 	if (!flipH && !flipV && !rot) {
+
 		ctx.drawImage(this.spritesheet.canvas, sx * SPRITE_WIDTH, sy * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT, x, y, SPRITE_WIDTH, SPRITE_HEIGHT);
+
 		return this;
+
 	}
+
 	ctx.save();
 
+
+
 	if (flipH) {
+
 		ctx.scale(-1, 1);
+
 		x *= -1;
+
 		x -= SPRITE_WIDTH;
+
 	}
 
+
+
 	if (flipV) {
+
 		ctx.scale(1, -1);
+
 		y *= -1
+
 		y -= SPRITE_HEIGHT;
+
 	}
+
+
 
 	if (rot) {
+
 		ctx.translate(x + SPRITE_HEIGHT, y);
+
 		ctx.rotate(PI2);
+
 	} else {
+
 		ctx.translate(x, y);
+
 	}
+
+
 
 	ctx.drawImage(this.spritesheet.canvas, sx * SPRITE_WIDTH, sy * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT, 0, 0, SPRITE_WIDTH, SPRITE_HEIGHT);
+
 	ctx.restore();
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.draw = function (img, x, y, flipH, flipV) {
+
 	if (img._isMap) img = img.texture.canvas;
+
 	if (img._isTexture) img = img.canvas;
-	var px = ~~Math.round((x || 0) - this.camera.x);
-	var py = ~~Math.round((y || 0) - this.camera.y);
-	if (!flipH && !flipV) {
-		// fast version
-		this.ctx.drawImage(img, px, py);
-		return this;
-	}
+
 	var ctx = this.ctx;
+
+	var px = ~~Math.round((x || 0) - this.camera.x);
+
+	var py = ~~Math.round((y || 0) - this.camera.y);
+
 	ctx.save();
+
 	if (flipH) {
+
 		ctx.scale(-1, 1);
+
 		px *= -1;
+
 		px -= img.width;
+
 	}
+
 	if (flipV) {
+
 		ctx.scale(1, -1);
+
 		py *= -1
+
 		py -= img.height;
+
 	}
+
 	ctx.translate(px, py);
+
 	this.ctx.drawImage(img, 0, 0);
+
 	ctx.restore();
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.clear = function () {
+
 	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.cls = function () {
+
 	this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
 	this.locate(0, 0);
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // colors
 
+
+
 Texture.prototype.pen = function (p) {
+
 	this._pen = p % this.palette.length;
+
 	this.ctx.strokeStyle = this.palette[this._pen];
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.paper = function (p) {
+
 	this._paper = p % this.palette.length;
+
 	this.ctx.fillStyle = this.palette[this._paper];
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // shape
 
+
+
 Texture.prototype.rect = function (x, y, w, h) {
+
 	this.ctx.strokeRect(~~(x - this.camera.x) + 0.5, ~~(y - this.camera.y) + 0.5, w - 1, h - 1);
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.rectfill = function (x, y, w, h) {
+
 	this.ctx.fillRect(~~(x - this.camera.x), ~~(y - this.camera.y), w, h);
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // text
 
+
+
 Texture.prototype.locate = function (i, j) {
+
 	this._cursor.i = ~~i;
+
 	this._cursor.j = ~~j;
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.print = function (str, x, y) {
+
 	if (typeof str === 'object') {
+
 		try {
+
 			str = JSON.stringify(str);
+
 		} catch (error) {
+
 			str = "[Object]";
+
 		}
+
 	} else if (typeof str !== 'string') {
+
 		str = str.toString();
+
 	}
+
 	if (x !== undefined) {
+
 		x = ~~Math.round(x - this.camera.x);
+
 		y = ~~Math.round(y - this.camera.y);
+
 		for (var i = 0; i < str.length; i++) {
+
 			this.ctx.drawImage(
+
 				this.textCharset.canvas,
+
 				3 * str.charCodeAt(i),
+
 				5 * this._pen,
+
 				3, 5,
+
 				x, y,
+
 				3, 5
+
 			);
+
 			x += 4;
+
 		}
+
 		return this;
+
 	}
+
 	for (var i = 0; i < str.length; i++) {
+
 		if (this._cursor.j >= this._textLine) {
+
 			this.textScroll();
+
 		}
+
 		var chr = str.charCodeAt(i);
+
 		if (chr === 10 || chr === 13) {
+
 			this._cursor.i = 0;
+
 			this._cursor.j += 1;
+
 			continue;
+
 		}
+
 		this.ctx.drawImage(
+
 			this.textCharset.canvas,
+
 			3 * chr,
+
 			5 * this._pen,
+
 			3, 5,
+
 			this._cursor.i * 4,
+
 			this._cursor.j * 6 + this._textOffset,
+
 			3, 5
+
 		);
+
 		this._cursor.i += 1;
+
 		if (this._cursor.i > this._textColumn) {
+
 			this._cursor.i = 0;
+
 			this._cursor.j += 1;
+
 		}
+
 	}
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.println = function (str) {
+
 	this.print(str);
+
 	this.print('\n');
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Texture.prototype.textScroll = function (n) {
+
 	if (n === undefined) n = 1;
+
 	this._cursor.j -= n;
+
 	n *= 6;
+
 	this.ctx.drawImage(this.canvas, 0, -n);
+
 	this.ctx.fillRect(0, this.canvas.height - n - this._textPadding, this.canvas.width, n + this._textPadding);
+
 	return this;
+
 };
+
+
 
 
 },{"../../settings.json":36}],27:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * @module loader
+
  * @desc   Loading functions helpers
+
  *
+
  * @author Cedric Stoquer
+
  */
+
+
+
 
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * @function module:loader.loadJson
+
  * @desc     load a json file
+
  *
+
  * @param {String}   path - file path
+
  * @param {Function} cb   - asynchronous callback function
+
  */
+
 function loadJson(path, cb) {
+
 	var xobj = new XMLHttpRequest();
+
 	xobj.onreadystatechange = function () {
+
 		if (~~xobj.readyState !== 4) return;
+
 		if (~~xobj.status !== 200) return cb('xhr:' + xobj.status);
+
 		return cb && cb(null, JSON.parse(xobj.response));
+
 	};
+
 	xobj.open('GET', path, true);
+
 	xobj.send();
+
 }
+
 exports.loadJson = loadJson;
 
 
+
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * @function module:loader.sendRequest
+
  * @desc     send some data to server
+
  *
+
  * @param {Object}   data - data to send to the server
+
  * @param {Function} cb   - asynchronous callback function
+
  */
+
 function sendRequest(data, cb) {
+
 	var xobj = new XMLHttpRequest();
+
 	xobj.open('POST', 'req', true);
+
 	xobj.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+
 	xobj.onreadystatechange = function () {
+
 		if (~~xobj.readyState !== 4) return;
+
 		if (~~xobj.status !== 200) return cb && cb('xhr:' + xobj.status);
+
 		var res = JSON.parse(xobj.response);
+
 		return cb && cb(res.error, res.result);
+
 	};
+
 	xobj.send(JSON.stringify(data));
+
 }
+
 exports.sendRequest = sendRequest;
 
 
+
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * @function  module:loader.loadImage
+
  * @desc      load an image file
+
  *
+
  * @param {String}   path - file path
+
  * @param {Function} cb   - asynchronous callback function
+
  */
+
 function loadImage(path, cb) {
+
 	var img = new Image();
+
 	// TODO: remove listeners when load / error
+
 	img.onload  = function () {
+
 		this.onload  = null;
+
 		this.onerror = null;
+
 		cb && cb(null, this);
+
 	};
+
 	img.onerror = function () {
+
 		this.onload  = null;
+
 		this.onerror = null;
+
 		cb && cb('img:' + path);
+
 	};
+
 	img.src = path;
+
 }
+
 exports.loadImage = loadImage;
 
 
+
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * @function module:loader.loadSound
+
  * @desc     load an image file
+
  *
+
  * @param {String}   path - file path
+
  * @param {Function} cb   - asynchronous callback function
+
  */
+
 function loadSound(path, cb) {
+
 	var snd = new Audio();
+
 	snd.preload = true;
+
 	snd.loop = false;
+
 	
+
 	function onSoundLoad() {
+
 		cb && cb(null, snd);
+
 		snd.removeEventListener('canplaythrough', onSoundLoad);
+
 		snd.removeEventListener('error', onSoundError);
+
 	}
+
+
 
 	function onSoundError() {
+
 		cb && cb('snd:load');
+
 		snd.removeEventListener('canplaythrough', onSoundLoad);
+
 		snd.removeEventListener('error', onSoundError);
+
 	}
 
+
+
 	snd.addEventListener('canplaythrough', onSoundLoad);
+
 	snd.addEventListener('error', onSoundError);
+
 	snd.src = path;
+
 	snd.load();
+
 }
+
 exports.loadSound = loadSound;
 
 
+
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * @function module:loader.preloadStaticAssets
+
  *
+
  * @desc   Preload all static assets of the game.
+
  *         The function first ask the server for the asset list.
+
  *         Server respond with an object containing the list of images
+
  *         to load and all data that are put in the www/asset folder.
+
  *         At this step, if request fail, function send an error.
+
  *         The function then proceed the loading of image assets. 
+
  *         If an image loading fail, the loading continue, and loading
+
  *         status is set to 1 (an image load fail).
+
  *         Images are load by 5 in parallel.
+
  *
+
  *         Function end and wil return an object that mix all data and 
+
  *         all assets so that it will have the same structure as the 
+
  *         'www/asset' folder.
+
  *
+
  *
+
  *         Assets list and data are automaticaly generated by server
+
  *         Just drop images and json files in the www/asset/ folder
+
  *         and the server will take care of it !
+
  *                 
+
  *
+
  * @param {Function} cb         - asynchronous callback function to 
+
  *                                call when all is preloaded
+
  *
+
  * @param {Function} onEachLoad - optional callback function called
+
  *                                every time one file is loaded
+
  *                                (for loading progress purpose)
+
  *                          
+
  */
 
+
+
 function preloadStaticAssets(cb, onEachLoad) {
+
 	loadJson('build/data.json', function onAssetListLoaded(error, assetList) {
+
 		if (error) return cb(error);
+
 		var data     = assetList.dat;
+
 		var imgCount = assetList.img.length;
+
 		var count    = imgCount + assetList.snd.length;
+
 		var root     = assetList.root;
+
 		var load     = 0;
+
 		var done     = 0;
+
 		function storeAsset(path, obj) {
+
 			var splitted = path.split('/');
+
 			var filename = splitted.pop();
+
 			var id = filename.split('.');
+
 			id.pop();
+
 			id = id.join('.');
+
 			var container = data;
+
 			for (var i = 0, len = splitted.length; i < len; i++) {
+
 				container = container[splitted[i]];
+
 			}
+
 			container[id] = obj;
+
 			splitted.push(id);
+
 			obj.name = id;
+
 			obj.path = splitted.join('/');
+
 		}
+
 		function loadAssets() {
+
 			var current = load + done;
+
 			var percent = current / count;
+
 			onEachLoad && onEachLoad(load, current, count, percent);
+
 			var path;
+
 			var loadFunc;
+
 			if (current < imgCount) {
+
 				path = assetList.img[current];
+
 				loadFunc = loadImage;
+
 			} else {
+
 				path = assetList.snd[current - imgCount];
+
 				loadFunc = loadSound;
+
 			}
+
 			done += 1;
+
 			loadFunc(root + path, function onAssetLoaded(error, img) {
+
 				if (!error) storeAsset(path, img);
+
 				load += 1;
+
 				done -= 1;
+
 				if (load + done < count) loadAssets()
+
 				else if (done === 0) cb(null, data);
+
 			});
+
 		}
+
 		// loading assets in parallel, with a limit of 5 parallel downloads.
+
 		if (count === 0) return cb(null, data);
+
 		var parallel = Math.min(5, count - 1);
+
 		for (var j = 0; j <= parallel; j++) loadAssets();
+
 	});
+
 }
+
 exports.preloadStaticAssets = preloadStaticAssets;
+
 
 },{}],28:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6277,705 +10870,1396 @@ AudioManager.prototype.createSoundGroups = function (soundGroupDefs, channelId) 
 
 },{"./AudioChannel.js":28,"./ISound.js":29,"./OrderedList":30,"./Sound.js":31,"./SoundBuffered.js":32,"./SoundGroup.js":33}],35:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /**
+
  * Pixelbox main framework module
+
  * 
+
  * @author Cedric Stoquer
+
  */
 
+
+
 var settings     = require('../settings.json');
+
 var assetLoader  = require('assetLoader');
+
 var AudioManager = require('audio-manager');
+
 var Texture      = require('Texture');
+
 var TINA         = require('TINA');
+
 var EventEmitter = require('EventEmitter');
+
 var Map          = require('Map');
+
+
 
 window.settings  = settings;
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // built-in modules
 
+
+
 window.EventEmitter = EventEmitter;
+
 window.Map          = Map;
+
 window.TINA         = TINA;
 
+
+
 window.inherits = function (Child, Parent) {
+
 	Child.prototype = Object.create(Parent.prototype, {
+
 		constructor: {
+
 			value: Child,
+
 			enumerable: false,
+
 			writable: true,
+
 			configurable: true
+
 		}
+
 	});
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // audio
 
+
+
 var audioManager = window.audioManager = new AudioManager(['sfx']);
+
 audioManager.settings.audioPath = 'audio/';
+
 audioManager.settings.defaultFade = 0.3;
 
+
+
 audioManager.init();
+
 audioManager.setVolume('sfx', 1.0);
 
+
+
 window.sfx = function (soundId, volume, panoramic, pitch) {
+
 	audioManager.playSound('sfx', soundId, volume, panoramic, pitch);
+
 };
+
+
 
 window.music = function (soundId, volume) {
+
 	if (!soundId) {
+
 		audioManager.stopLoopSound('sfx');
+
 		return;
+
 	}
+
 	audioManager.playLoopSound('sfx', soundId, volume);
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // controls
 
+
+
 var keyMap   = {};
+
 var button   = window.btn  = {};
+
 var bpress   = window.btnp = {};
+
 var brelease = window.btnr = {};
+
 var buttonNames  = [];
+
 var buttonLength = 0;
 
+
+
 (function setupKeyMap() {
+
 	var controls = settings.controls || { up: 38, down: 40, left: 37, right: 39, A: 32, B: 88 };
+
 	for (var key in controls) {
+
 		var keyCode = controls[key];
+
 		keyMap[keyCode] = key;
+
 		button[key]   = false;
+
 		bpress[key]   = false;
+
 		brelease[key] = false;
+
 		buttonNames.push(key);
+
 	}
+
 	buttonLength = buttonNames.length;
+
 })();
 
+
+
 function resetControlTriggers() {
+
 	for (var i = 0; i < buttonLength; i++) {
+
 		bpress[buttonNames[i]]   = false;
+
 		brelease[buttonNames[i]] = false;
+
 	}
+
 }
+
+
 
 function keyChange(keyCode, isPressed) {
+
 	var key = keyMap[keyCode];
+
 	if (!key) return;
+
 	if ( isPressed && !button[key])   bpress[key] = true;
+
 	if (!isPressed &&  button[key]) brelease[key] = true;
+
 	button[key] = isPressed;
+
 }
 
+
+
 window.addEventListener('keydown', function onKeyPressed(e) { keyChange(e.keyCode, true);  });
+
 window.addEventListener('keyup',   function onKeyRelease(e) { keyChange(e.keyCode, false); });
 
 
+
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // gamepads
+
+
 
 var gamepads = window.gamepads = {};
 
+
+
 (function(){
+
 	var currentGamepads = navigator.getGamepads();
+
 	for (var i = 0; i < currentGamepads.length; i++) {
+
 		var gamepad = currentGamepads[i];
+
 		if (!gamepad) continue;
+
 		gamepads[gamepad.index] = gamepad;
+
 	}
+
 })();
 
+
+
 function gamepadHandler(event, connecting) {
+
 	var gamepad = event.gamepad;
+
 	if (connecting) {
+
 		gamepads[gamepad.index] = gamepad;
+
 	} else {
+
 		delete gamepads[gamepad.index];
+
 	}
+
 }
 
+
+
 window.addEventListener("gamepadconnected",    function (e) { gamepadHandler(e, true);  }, false);
+
 window.addEventListener("gamepaddisconnected", function (e) { gamepadHandler(e, false); }, false);
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // Texture
 
+
+
 var currentSpritesheet = Texture.prototype.currentSpritesheet;
+
 var textCharset = Texture.prototype.textCharset;
+
+
 
 window.Texture = Texture;
 
+
+
 window.texture = function (img) {
+
 	var texture = new Texture(img.width, img.height);
+
 	texture.ctx.drawImage(img, 0, 0);
+
 	return texture;
+
 }
+
+
 
 window.spritesheet = function(img) {
+
 	return Texture.prototype.setGlobalSpritesheet(img);
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // screen
 
+
+
 function createScreen(width, height, pixelSize) {
+
 	var texture = new Texture(width, height);
+
 	var canvas = texture.canvas;
+
 	document.body.appendChild(canvas);
+
 	var style = canvas.style;
+
 	style.width  = width  * pixelSize[0] + 'px';
+
 	style.height = height * pixelSize[1] + 'px';
+
 	return texture;
+
 }
+
+
 
 var screen = window.$screen = createScreen(settings.screen.width, settings.screen.height, settings.screen.pixelSize);
+
 screen.setPalette(settings.palette);
 
+
+
 window.cls      = function ()                 { return screen.cls();                    };
+
 window.sprite   = function (s, x, y, h, v, r) { return screen.sprite(s, x, y, h, v, r); };
+
 window.draw     = function (img, x, y, h, v)  { return screen.draw(img, x, y, h, v);    };
+
 window.rect     = function (x, y, w, h)       { return screen.rect(x, y, w, h);         };
+
 window.rectfill = function (x, y, w, h)       { return screen.rectfill(x, y, w, h);     };
+
 window.camera   = function (x, y)             { return screen.setCamera(x, y);          };
+
 window.pen      = function (p)                { return screen.pen(p);                   };
+
 window.paper    = function (p)                { return screen.paper(p);                 };
+
 window.locate   = function (i, j)             { return screen.locate(i, j);             };
+
 window.print    = function (str, x, y)        { return screen.print(str, x, y);         };
+
 window.println  = function (str)              { return screen.println(str);             };
 
+
+
 /*Object.defineProperty(window, 'cls', {
+
 	get: function () { return screen.cls(); },
+
 	set: function () {}
+
 });*/
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // utility functions
 
+
+
 window.chr$ = function (chr) {
+
 	return String.fromCharCode(chr);
+
 };
+
+
 
 window.clip = function (value, min, max) {
+
 	return Math.max(min, Math.min(max, value));
+
 };
+
+
 
 window.random = function (n) {
+
 	return ~~Math.round(n * Math.random());
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // simple clock divider utility class
+
 function Clock(m) {
+
 	this.m = m || 1;
+
 	this.i = 0;
+
 }
+
 window.Clock = Clock;
 
+
+
 Clock.prototype.tick = function(n) {
+
 	this.i += n || 1;
+
 	if (this.i > this.m) {
+
 		this.i = 0;
+
 		return true;
+
 	}
+
 	return false;
+
 };
+
 Clock.prototype.tic = Clock.prototype._tick; // deprecated
 
+
+
 /*Object.defineProperty(Clock.prototype, 'tick', {
+
 	get: function () { return this._tick(); },
+
 	set: function () {}
+
 });*/
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 // main
+
+
 
 var FRAME_INTERVAL = 1 / 60;
 
+
+
 var requestAnimationFrame = 
+
 	window.requestAnimationFrame       ||
+
 	window.webkitRequestAnimationFrame ||
+
 	window.mozRequestAnimationFrame    ||
+
 	window.oRequestAnimationFrame      ||
+
 	window.msRequestAnimationFrame     ||
+
 	function nextFrame(callback) { window.setTimeout(callback, FRAME_INTERVAL); };
 
 
+
+
+
 function onAssetsLoaded(error, assets) {
+
 	paper(0).pen(1).cls();
 
+
+
 	if (error) {
+
 		print(error);
+
 		return console.error(error);
+
 	}
+
+
 
 	window.assets = assets;
 
+
+
 	// set default spritesheet
+
 	if (assets.spritesheet) spritesheet(assets.spritesheet);
 
+
+
 	// setup all maps
+
 	for (var i = 0; i < assets.maps.length; i++) {
+
 		assets.maps[i] = new Map().load(assets.maps[i]);
+
 	}
 
+
+
 	// setup TINA with a ticker
+
 	var ticker = new TINA.Ticker().useAsDefault();
+
 	TINA.add(ticker);
+
+
 
 	var main = require('../src/main.js');
 
+
+
 	if (!main.update) return;
 
+
+
 	function update() {
+
 		TINA.update(); // update all tweeners
+
 		main.update(); // call main update function
+
 		resetControlTriggers(); // reset button pressed and release
+
 		requestAnimationFrame(update);
+
 	}
 
+
+
 	resetControlTriggers();
+
 	update();
+
 }
 
+
+
 var CENTER     = ~~(settings.screen.width  / 2);
+
 var HALF_WIDTH = ~~(settings.screen.width  / 4);
+
 var MIDDLE     = ~~(settings.screen.height / 2);
 
 
+
+
+
 function showProgress(load, current, count, percent) {
+
 	rectfill(CENTER - HALF_WIDTH, MIDDLE - 2, ~~(percent * HALF_WIDTH * 2), 4);
+
 }
 
+
+
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
+
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":49,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":47,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
+
 	"screen": {
+
 		"width": 64,
+
 		"height": 64,
+
 		"pixelSize": [8, 6]
+
 	},
+
 	"spriteSize": [8, 8],
+
 	"palette": [
+
 		"#000000",
+
 		"#FFF1E8",
+
 		"#008751",
+
 		"#AB5236",
+
 		"#7E2553",
+
 		"#5F574F",
+
 		"#29ADFF",
+
 		"#00E756",
+
 		"#FFA300",
+
 		"#FF77A8",
+
 		"#C2C3C7",
+
 		"#83769C",
+
 		"#FFFF27",
+
 		"#FFCCAA",
+
 		"#1D2B53",
+
 		"#FF004D"
+
 	],
+
 	"controls": {
+
 		"up": 38,
+
 		"down": 40,
+
 		"left": 37,
+
 		"right": 39,
+
 		"A": 32,
+
 		"B": 88
+
 	}
 }
 },{}],37:[function(require,module,exports){
 
+
 function AABBcollision(a, b) {
+
 	return a.x < b.x + b.width  
+
 		&& a.y < b.y + b.height
+
 		&& b.x < a.x + a.width 
+
 		&& b.y < a.y + a.height;
+
 }
+
+
 
 module.exports = AABBcollision;
 
+
 },{}],38:[function(require,module,exports){
 var level = require('./Level.js');
+
 var AABBcollision = require('./AABBcollision.js');
 
+
+
 var TILE_WIDTH  = settings.spriteSize[0];
+
 var TILE_HEIGHT = settings.spriteSize[1];
+
 var GRAVITY     = 0.5;
+
 var MAX_GRAVITY = 3;
+
 var WATER_FORCE = -0.1;
+
 var MAX_WATER   = -1.5;
 
+
+
 var ATTACK_NONE  = 0;
+
 var ATTACK_SLASH = 1;
 
+
+
 var CHAINSAW_SLASH_BBOXES_RIGHT = [
+
 	{ x:  2, y: -11, w: 5, h: 7 },
+
 	{ x: 10, y:  -7, w: 6, h: 6 },
+
 	{ x: 11, y:   3, w: 8, h: 5 },
+
 	{ x: 11, y:   3, w: 8, h: 5 },
+
 	{ x: 10, y:   3, w: 8, h: 5 },
+
 	{ x:  9, y:   3, w: 7, h: 5 }
+
 ];
+
+
 
 var CHAINSAW_SLASH_BBOXES_LEFT = [
+
 	{ x:   1, y: -11, w: 5, h: 7 },
+
 	{ x:  -8, y:  -7, w: 6, h: 6 },
+
 	{ x: -11, y:   3, w: 8, h: 5 },
+
 	{ x: -11, y:   3, w: 8, h: 5 },
+
 	{ x: -10, y:   3, w: 8, h: 5 },
+
 	{ x:  -8, y:   3, w: 7, h: 5 }
+
 ];
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 function Bob() {
+
 	this.x      = 0;
+
 	this.y      = 0;
+
 	this.width  = 8;
+
 	this.height = 8;
+
 	this.sx     = 0;
+
 	this.sy     = 0;
 
+
+
 	// animation
+
 	this.frame = 0;
+
 	this.flipH = false;
 
+
+
 	// abilities
+
 	this.canAttack     = false;
+
 	this.canDive       = false;
+
 	this.canDoubleJump = false;
 
+
+
 	// state
+
 	this.onTile   = null;
+
 	this.grounded = false;
+
 	this.climbing = false;
+
 	this.inWater  = 0;
+
 	this.jumping  = false;
+
 	this.jumpCounter = 0;
+
 	this.doubleJumpUsed = false;
 
+
+
 	this.isLocked  = false; // e.g. when slashing
+
 	this.attacking = ATTACK_NONE;
+
 	this.attackCounter = 0;
+
 	this.hitCounter = 0;
+
 	this.isHit = false;
+
 	this.isAttackable = true;
+
 }
+
+
 
 module.exports = new Bob();
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.saveState = function () {
+
 	return {
+
 		x:             this.x,
+
 		y:             this.y,
+
 		canAttack:     this.canAttack,
+
 		canDive:       this.canDive,
+
 		canDoubleJump: this.canDoubleJump
+
 	};
+
 };
+
+
 
 Bob.prototype.restoreState = function (state) {
+
 	this.x             = state.x;
+
 	this.y             = state.y;
+
 	this.canAttack     = state.canAttack;
+
 	this.canDive       = state.canDive;
+
 	this.canDoubleJump = state.canDoubleJump;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.setPosition = function (pos) {
+
 	this.x = pos.x || 0;
+
 	this.y = pos.y || 0;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.attack = function () {
+
 	this.isLocked      = true;
+
 	this.attacking     = ATTACK_SLASH;
+
 	this.attackCounter = 0;
+
 };
+
+
 
 Bob.prototype.endAttack = function () {
+
 	this.isLocked  = false;
+
 	this.attacking = ATTACK_NONE;
+
 };
+
+
 
 Bob.prototype.getattackBB = function () {
+
 	if (this.attacking === ATTACK_SLASH) {
+
 		var chainsawBB = (this.flipH ? CHAINSAW_SLASH_BBOXES_LEFT : CHAINSAW_SLASH_BBOXES_RIGHT)[~~this.attackCounter];
+
 		if (chainsawBB) return {
+
 			x:      chainsawBB.x + this.x,
+
 			y:      chainsawBB.y + this.y,
+
 			width:  chainsawBB.w,
+
 			height: chainsawBB.h,
+
 		};
+
 	}
+
 	return null;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.action = function () {
+
 	var tile = this.onTile;
+
 	if (tile.isDoor) {
+
 		// enter door
+
 		var door = level.doors[tile.doorId];
+
 		this.controller.changeLevel(door.level, door.doorId);
+
 	} else if (this.canAttack) {
+
 		// attack
+
 		this.attack();
+
 	}
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.startJump = function () {
+
 	if (this.climbing) {
+
 		// TODO
+
 		return;
+
 	}
+
 	if (!this.grounded) {
+
 		if (this.canDoubleJump && !this.doubleJumpUsed) this.doubleJumpUsed = true;
+
 		else if (!this.inWater) return; // allow bob to jump from water
+
 	}
+
 	// if there is a ceiling directly on top of Bob's head, cancel jump.
+
 	// if (level.getTileAt(this.x + 1, this.y - 2).isSolid || level.getTileAt(this.x + 6, this.y - 2).isSolid) return;
+
 	this.grounded    = false;
+
 	this.jumping     = true;
+
 	this.jumpCounter = 0;
+
 };
+
+
 
 Bob.prototype.jump = function () {
+
 	if (this.climbing) {
+
 		this.sy = -1;
+
 		return;
+
 	}
+
 	if (this.onTile.isVine) {
+
 		this.climbing = true;
+
 		return;
+
 	}
+
 	if (!this.jumping) return;
+
 	if (this.jumpCounter++ > 12) this.jumping = false;
+
 	this.sy = -3 + this.jumpCounter * 0.08;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.goDown = function () {
+
 	if (this.inWater && !this.grounded) {
+
 		if (!this.canDive) return;
+
 		// water movement
+
 		this.sy = Math.min(2, this.sy + 0.5);
+
 	} else if (this.climbing) {
+
 		// climbing movement
+
 		this.sy = 1;
+
 	}
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype._updateTileState = function () {
+
 	var tile = this.onTile = level.getTileAt(this.x + 4, this.y + 4);
+
 	this.inWater = tile.isWater; // TODO check enter, exit (for particles, etc)
+
 	this.onVine  = tile.isVine;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype._updateControls = function () {
+
 	if (!this.isLocked) {
+
 		if (btnp.up)  this.startJump();
+
 		if (btnr.up)  this.jumping = false;
+
 		if (btn.up)   this.jump();
+
 		if (btn.down) this.goDown();
 
+
+
 		// if (btn.down)  TODO going down from one way platforms
+
 		if ( btn.right && !btn.left) { this.sx = 1;  this.flipH = false; } // going right
+
 		if (!btn.right &&  btn.left) { this.sx = -1; this.flipH = true;  } // going left
 
+
+
 		this._updateTileState();
+
+
 
 		if (btnp.A) this.action();
+
 	} else {
+
 		if (btn.up) this.jump(); // FIXME: this is to allow jump continuation during attack
+
 		this._updateTileState();
+
 	}
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.update = function () {
+
 	// friction
+
 	this.sx *= this.isHit ? 0.99 : 0.8;
+
+
 
 	this._updateControls();
 
+
+
 	if (this.inWater === 1) {
+
 		this.sy += WATER_FORCE;
+
 		this.sy = Math.max(this.sy, MAX_WATER);
+
 	} else if (this.inWater === 2) {
+
 		this.sy -= 0.1;
+
 		this.sy = Math.max(this.sy, MAX_WATER);
+
 		this.sy *= 0.9;
+
 	} else if (this.climbing) {
+
 		this.sy *= 0.8;
+
 		this.sx *= 0.5;
+
 		if (!this.onTile.isVine) this.climbing = false;
+
 	} else if (!this.grounded) {
+
 		this.sy += GRAVITY;
+
 		this.sy = Math.min(this.sy, MAX_GRAVITY);
+
 	}
+
+
 
 	// hit
+
 	if (this.isHit) {
+
 		this.hitCounter++;
+
 		if (this.hitCounter > 16) {
+
 			this.isLocked = false;
+
 		}
+
 		// keep Bob not attackable for few more frames
+
 		if (this.hitCounter > 50) {
+
 			this.isHit = false;
+
 			this.isAttackable = true;
+
 		}
+
 	}
+
+
 
 	// attack collision
+
 	if (this.attacking) {
+
 		var attackBB = this.getattackBB();
+
 		if (attackBB) {
+
 			var entities = this.controller.entities;
+
 			// going in reverse because collision might destroy entity
+
 			for (var i = entities.length - 1; i >= 0; i--) {
+
 				var entity = entities[i];
+
 				if (!entity.isAttackable) continue;
+
 				if (AABBcollision(entity, attackBB)) {
+
 					// collision detected
+
 					entity.hit(this);
+
 				}
+
 			}
+
 		}
+
 	}
+
+
 
 	this.levelCollisions();
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.levelCollisions = function () {
+
 	// round speed
+
 	this.sx = ~~(this.sx * 100) / 100;
+
 	this.sy = ~~(this.sy * 100) / 100;
 
+
+
 	var x = this.x + this.sx;
+
 	var y = this.y + this.sy;
 
+
+
 	// check level boundaries
+
 	var maxX = level.width  * TILE_WIDTH  - 4; // TODO don't need to be calculated each frames
+
 	var maxY = level.height * TILE_HEIGHT - 4;
+
 	if (x < -4)   { x = -4;   if (this.controller.goToNeighbourLevel('left'))  return; }
+
 	if (x > maxX) { x = maxX; if (this.controller.goToNeighbourLevel('right')) return; }
+
 	if (y < -6   && this.controller.goToNeighbourLevel('up'))   return;
+
 	if (y > maxY && this.controller.goToNeighbourLevel('down')) return; // TODO: else should bob dies?
 
+
+
 	var front       = 8;
+
 	var frontOffset = 0;
+
 	if (this.sx < 0) { front = 0; frontOffset = 8; }
 
-	//---------------------------------------------------------
-	// horizontal collisions (check 2 front point)
-	if (this.sx !== 0) {
-		if (level.getTileAt(x + front, this.y + 1).isSolid || level.getTileAt(x + front, this.y + 7).isSolid) {
-			this.sx = 0;
-			x = ~~(x / TILE_WIDTH) * TILE_WIDTH + frontOffset;
-		}
-	}
+
 
 	//---------------------------------------------------------
-	// vertical collisions
-	if (this.grounded) {
-		// check if there is still floor under Bob's feets
-		var tileDL = level.getTileAt(x + 1, y + 9);
-		var tileDR = level.getTileAt(x + 6, y + 9);
-		if (tileDL.isEmpty && tileDR.isEmpty) this.grounded = false;
-	} else if (this.sy > 0) {
-		// Bob is falling. Check what is underneath
-		var tileDL = level.getTileAt(x + 1, y + 8);
-		var tileDR = level.getTileAt(x + 6, y + 8);
-		if (tileDL.isSolid || tileDR.isSolid) {
-			// collided with solid ground
-			this._ground();
-			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
-		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
-			// collided with one-way thru platform. Check if Bob where over the edge the frame before.
-			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
-			if (this.y <= targetY) {
-				this._ground();
-				y = targetY;
-			}
+
+	// horizontal collisions (check 2 front point)
+
+	if (this.sx !== 0) {
+
+		if (level.getTileAt(x + front, this.y + 1).isSolid || level.getTileAt(x + front, this.y + 7).isSolid) {
+
+			this.sx = 0;
+
+			x = ~~(x / TILE_WIDTH) * TILE_WIDTH + frontOffset;
+
 		}
-	} else if (this.sy < 0) {
-		// Bob is moving upward. Check for ceiling collision
-		var tileUL = level.getTileAt(x + 1, y);
-		var tileUR = level.getTileAt(x + 6, y);
-		if (tileUL.isSolid || tileUR.isSolid) {
-			this.sy = 0;
-			this.jumpCounter += 2;
-			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
-		}
+
 	}
+
+
+
+	//---------------------------------------------------------
+
+	// vertical collisions
+
+	if (this.grounded) {
+
+		// check if there is still floor under Bob's feets
+
+		var tileDL = level.getTileAt(x + 1, y + 9);
+
+		var tileDR = level.getTileAt(x + 6, y + 9);
+
+		if (tileDL.isEmpty && tileDR.isEmpty) this.grounded = false;
+
+	} else if (this.sy > 0) {
+
+		// Bob is falling. Check what is underneath
+
+		var tileDL = level.getTileAt(x + 1, y + 8);
+
+		var tileDR = level.getTileAt(x + 6, y + 8);
+
+		if (tileDL.isSolid || tileDR.isSolid) {
+
+			// collided with solid ground
+
+			this._ground();
+
+			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
+
+		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
+
+			// collided with one-way thru platform. Check if Bob where over the edge the frame before.
+
+			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
+
+			if (this.y <= targetY) {
+
+				this._ground();
+
+				y = targetY;
+
+			}
+
+		}
+
+	} else if (this.sy < 0) {
+
+		// Bob is moving upward. Check for ceiling collision
+
+		var tileUL = level.getTileAt(x + 1, y);
+
+		var tileUR = level.getTileAt(x + 6, y);
+
+		if (tileUL.isSolid || tileUR.isSolid) {
+
+			this.sy = 0;
+
+			this.jumpCounter += 2;
+
+			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
+
+		}
+
+	}
+
+
 
 	// fetch position
+
 	this.x = x;
+
 	this.y = y;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype._ground = function () {
+
 	this.grounded = true;
+
 	this.jumping  = false;
+
 	this.doubleJumpUsed = false;
+
 	this.climbing = false;
+
 	this.sy = 0;
+
 }
 
-//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Bob.prototype.draw = function () {
-	if (this.attacking === ATTACK_SLASH) {
-		var animId = 'slash' + ~~this.attackCounter;
-		draw(assets.chainsaw[animId], this.x - 16, this.y - 16, this.flipH);
-		this.attackCounter += 0.33;
-		if (this.attackCounter >= 5) this.endAttack();
-	} else {
-		var s = 255;
-		if (this.climbing) {
-			if (this.sy > 0.2 || this.sy < -0.2) {
-				this.frame += 0.1;
-				if (this.frame >= 4) this.frame = 0;
-			}
-			s = 248 + ~~this.frame;
-		} else if (this.sx > 0.4 || this.sx < -0.4) {
-			this.frame += 0.3;
-			if (this.frame >= 3) this.frame = 0;
-			s = 252 + ~~this.frame;
-		}
-		if (this.isHit && this.hitCounter < 16) {
-			s -= (~~(this.hitCounter / 3) % 3) * 16;
-		}
-		sprite(s, this.x, this.y, this.flipH);
-	}
-};
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Bob.prototype.draw = function () {
+
+	if (this.attacking === ATTACK_SLASH) {
+
+		var animId = 'slash' + ~~this.attackCounter;
+
+		draw(assets.chainsaw[animId], this.x - 16, this.y - 16, this.flipH);
+
+		this.attackCounter += 0.33;
+
+		if (this.attackCounter >= 5) this.endAttack();
+
+	} else {
+
+		var s = 255;
+
+		if (this.climbing) {
+
+			if (this.sy > 0.2 || this.sy < -0.2) {
+
+				this.frame += 0.1;
+
+				if (this.frame >= 4) this.frame = 0;
+
+			}
+
+			s = 248 + ~~this.frame;
+
+		} else if (this.sx > 0.4 || this.sx < -0.4) {
+
+			this.frame += 0.3;
+
+			if (this.frame >= 3) this.frame = 0;
+
+			s = 252 + ~~this.frame;
+
+		}
+
+		if (this.isHit && this.hitCounter < 16) {
+
+			s -= (~~(this.hitCounter / 3) % 3) * 16;
+
+		}
+
+		sprite(s, this.x, this.y, this.flipH);
+
+	}
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Bob.prototype.hit = function (attacker) {
+
 	// from where do hit comes from ?
+
 	this.grounded   = false;
+
 	this.isHit      = true;
+
 	this.hitCounter = 0;
+
 	this.isLocked   = true;
+
 	this.isAttackable = false;
 
+
+
 	this.sx = attacker.x < this.x ? 1.6 : -1.6;
+
 	this.sy = attacker.y < this.y ? 2 : -3;
+
 };
 },{"./AABBcollision.js":37,"./Level.js":43}],39:[function(require,module,exports){
+<<<<<<< HEAD
 var TextDisplay    = require('./TextDisplay.js');
 var FadeTransition = require('./FadeTransition.js');
 
@@ -7539,288 +12823,1683 @@ Level.prototype._initDoors = function (map, doors) {
 Level.prototype.setBobPositionOnDoor = function (doorId) {
 	var door = this.doors[doorId];
 	if (!door || !door.position) return console.error('level does not contain door id', doorId);
+=======
+var TextDisplay    = require('./TextDisplay.js');
+
+var FadeTransition = require('./FadeTransition.js');
+
+
+
+var textDisplay = new TextDisplay();
+
+var fader       = new FadeTransition();
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+function CutScene() {
+
+	this._backgroundColor  = 0; // to store level BG color
+
+	this._onFinishCallback = null;
+
+	this._isDisplayingText = false;
+
+	this._isFading         = false;
+
+	this._animation        = null;
+
+
+
+	this._actions = [];
+
+}
+
+
+
+module.exports = CutScene;
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype.start = function (cb) {
+
+	this._onFinishCallback = cb;
+
+	this._backgroundColor = $screen._paper; // FIXME this is a bit hacky
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype.enqueue = function (fn) {
+
+	this._actions.push(fn);
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype.addDialog = function (dialog) {
+
+	this._actions.push(function () {
+
+		this._displayDialog(dialog);
+
+	});
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype.addFade = function () {
+
+	this._actions.push(function () {
+
+		this._startFade();
+
+	});
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype.addDelay = function (delay) {
+
+	delay = delay || 1;
+
+	var counter = ~~(delay * 60);
+
+	this.addAnimation(function () {
+
+		return (counter-- <= 0);
+
+	});
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+/** 
+
+ * @param {Function} animation - a function that needs to be called every frame until its returns true
+
+ */
+
+CutScene.prototype.addAnimation = function (animation) {
+
+	this._actions.push(function () {
+
+		this._animation = animation;
+
+	});
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype.update = function () {
+
+	camera(0, 0);
+
+	if (this._isDisplayingText) return textDisplay.update();
+
+	if (this._isFading) return fader.update();
+
+	if (this._animation) {
+
+		if (this._animation()) this._animation = null;
+
+		return;
+
+	}
+
+
+
+	if (this._actions.length) {
+
+		var nextAction = this._actions.shift();
+
+		if (typeof nextAction === 'function') nextAction.apply(this);
+
+		return;
+
+	}
+
+
+
+	this._finish();
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype._finish = function () {
+
+	this._onFinishCallback && this._onFinishCallback();
+
+	this._onFinishCallback = null;
+
+	paper(this._backgroundColor);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype._displayDialog = function (dialog) {
+
+	var self = this;
+
+	this._isDisplayingText = true;
+
+	textDisplay.start(dialog, function () {
+
+		self._isDisplayingText = false;
+
+	});
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+CutScene.prototype._startFade = function (options) {
+
+	var self = this;
+
+	this._isFading = true;
+
+	fader.start(options, function () {
+
+		self._isFading = false;
+
+	});
+
+};
+
+>>>>>>> upstream/master
+
+},{"./FadeTransition.js":41,"./TextDisplay.js":45}],40:[function(require,module,exports){
+var TILE_WIDTH  = settings.spriteSize[0];
+
+var TILE_HEIGHT = settings.spriteSize[1];
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+function Entity() {
+
+	this.x          = 0;
+
+	this.y          = 0;
+
+	this.width      = 8;
+
+	this.height     = 8;
+
+
+
+	// physic
+
+	this.sx         = 0;
+
+	this.sy         = 0;
+
+	this.grounded   = false;
+
+	this.gravity    = 0.1;
+
+	this.maxGravity = 1;
+
+
+
+	// properties
+
+	this.isAttackable = false;
+
+
+
+	// flags
+
+	this.hasCollidedLevelFront = false;
+
+	this.hasCollidedLevelDown  = false;
+
+	this.hasCollidedLevelUp    = false;
+
+}
+
+
+
+module.exports = Entity;
+
+
+
+//█████████████████████████████████████████████████████████████████████████████████
+
+//████████████████████████████████████████▄███████▄░██████████▄░███████▄░██████████
+
+//█▀▄▄▄▄▀█▄░▄██▄░▄█▀▄▄▄▄▀█▄░▀▄▄▄█▄░▀▄▄▄█▄▄░███▀▄▄▄▀░██▀▄▄▄▄▀███░▀▄▄▄▀███░███▀▄▄▄▄▀█
+
+//█░████░███░██░███░▄▄▄▄▄██░██████░███████░███░████░██▀▄▄▄▄░███░████░███░███░▄▄▄▄▄█
+
+//█▄▀▀▀▀▄████░░████▄▀▀▀▀▀█▀░▀▀▀██▀░▀▀▀██▀▀░▀▀█▄▀▀▀▄░▀█▄▀▀▀▄░▀█▀░▄▀▀▀▄█▀▀░▀▀█▄▀▀▀▀▀█
+
+//█████████████████████████████████████████████████████████████████████████████████
+
+Entity.prototype.move = function (level, bob) {
+
+	// OVERIDE THIS
+
+	return false; // return true if entity needs to check collision with level
+
+};
+
+
+
+// OVERIDE THESE
+
+Entity.prototype.collideFront = function () {};
+
+Entity.prototype.onGrounds = function () {};
+
+Entity.prototype.animate = function () {};
+
+Entity.prototype.hit = function (attacker) {};
+
+
+
+//████████████████████████████████████████████████
+
+//████████████████████████████████████████████████
+
+//█▀▄▄▄▀░█▀▄▄▄▄▀█▄░▀▄▀▀▄▀█▄░▀▄▀▀▄▀█▀▄▄▄▄▀█▄░▀▄▄▀██
+
+//█░██████░████░██░██░██░██░██░██░█░████░██░███░██
+
+//█▄▀▀▀▀▄█▄▀▀▀▀▄█▀░▀█░▀█░█▀░▀█░▀█░█▄▀▀▀▀▄█▀░▀█▀░▀█
+
+//████████████████████████████████████████████████
+
+Entity.prototype.update = function (level, bob) {
+
+	if (this.move(level, bob)) this.levelCollisions(level, bob);
+
+	this.animate();
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Entity.prototype.setPosition = function (i ,j) {
+
+	this.x = i * TILE_WIDTH;
+
+	this.y = j * TILE_HEIGHT;
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Entity.prototype.fall = function () {
+
+	this.sy += this.gravity;
+
+	this.sy = Math.min(this.sy, this.maxGravity);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Entity.prototype.levelCollisions = function (level, bob) {
+
+	this.hasCollidedLevelFront = false;
+
+	this.hasCollidedLevelDown  = false;
+
+	this.hasCollidedLevelUp    = false;
+
+
+
+	var x = this.x + this.sx;
+
+	var y = this.y + this.sy;
+
+
+
+	// check level boundaries
+
+	var maxX = level.width * TILE_WIDTH - this.width; // TODO don't need to be calculated each frames
+
+	if (x < 0)    {x = 0;    this.hasCollidedLevelFront = true; this.collideFront(); }
+
+	if (x > maxX) {x = maxX; this.hasCollidedLevelFront = true; this.collideFront(); }
+
+
+
+	var front       = 8;
+
+	var frontOffset = 0;
+
+	if (this.sx < 0) { front = 0; frontOffset = 8; }
+
+
+
+	//---------------------------------------------------------
+
+	// horizontal collisions (check 2 front point)
+
+	if (level.getTileAt(x + front, this.y + 1).isSolid || level.getTileAt(x + front, this.y + 7).isSolid) {
+
+		this.hasCollidedLevelFront = true;
+
+		this.collideFront();
+
+		x = ~~(x / TILE_WIDTH) * TILE_WIDTH + frontOffset;
+
+	}
+
+
+
+	//---------------------------------------------------------
+
+	// vertical collisions
+
+	if (this.grounded) {
+
+		// check if there is still floor under Entity's feets
+
+		var tileDL = level.getTileAt(x + 1, y + this.height + 1);
+
+		var tileDR = level.getTileAt(x + 6, y + this.height + 1);
+
+		if (tileDL.isEmpty && tileDR.isEmpty) {
+
+			this.grounded = false;
+
+			this.sx = 0;
+
+		}
+
+	} else if (this.sy > 0) {
+
+		// Entity is falling. Check what is underneath
+
+		var tileDL = level.getTileAt(x + 1, y + this.height);
+
+		var tileDR = level.getTileAt(x + 6, y + this.height);
+
+		if (tileDL.isSolid || tileDR.isSolid) {
+
+			// collided with solid ground
+
+			this.hasCollidedLevelDown = true;
+
+			this.grounded = true;
+
+			this.sy = 0;
+
+			this.onGrounds();
+
+			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
+
+		} else if (tileDL.isTopSolid || tileDR.isTopSolid) {
+
+			// collided with one-way thru platform. Check if Entity where over the edge the frame before.
+
+			var targetY = ~~(y / TILE_HEIGHT) * TILE_HEIGHT;
+
+			if (this.y <= targetY) {
+
+				this.hasCollidedLevelDown = true;
+
+				this.grounded = true;
+
+				this.sy = 0;
+
+				this.onGrounds();
+
+				y = targetY;
+
+			}
+
+		}
+
+	} else if (this.sy < 0) {
+
+		// Entity is moving upward. Check for ceiling collision
+
+		var tileUL = level.getTileAt(x + 1, y);
+
+		var tileUR = level.getTileAt(x + 6, y);
+
+		if (tileUL.isSolid || tileUR.isSolid) {
+
+			this.hasCollidedLevelUp = true;
+
+			this.sy = 0;
+
+			y = ~~(y / TILE_HEIGHT) * TILE_HEIGHT + 8;
+
+		}
+
+	}
+
+
+
+	// fetch position
+
+	this.x = x;
+
+	this.y = y;
+
+};
+
+
+},{}],41:[function(require,module,exports){
+var TILE_WIDTH  = settings.spriteSize[0];
+
+var TILE_HEIGHT = settings.spriteSize[1];
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+function FadeTransition() {
+
+	this.transitionCount  = 0;
+
+	this.onFinishCallback = null;
+
+}
+
+
+
+module.exports = FadeTransition;
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+FadeTransition.prototype.start = function (options, cb) {
+
+	this.onFinishCallback = cb;
+
+	this.transitionCount = -30;
+
+	return this;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+/** return true if it continues and false when ended */
+
+FadeTransition.prototype.update = function () {
+
+	camera(0, 0);
+
+	draw(assets.ditherFondu, 0, this.transitionCount * TILE_HEIGHT);
+
+	if (++this.transitionCount > 0) {
+
+		// this.loadLevel(nextLevel, nextDoor, nextSide);
+
+		this.onFinishCallback && this.onFinishCallback();
+
+		this.onFinishCallback = null;
+
+		return false;
+
+	}
+
+	return true;
+
+};
+
+
+},{}],42:[function(require,module,exports){
+var level          = require('./Level.js');
+
+var bob            = require('./Bob.js');
+
+var TextDisplay    = require('./TextDisplay.js');
+
+var Entity         = require('./Entity.js');
+
+var FadeTransition = require('./FadeTransition.js');
+
+var bossIntro      = require('./cutscenes/bossIntro.js');
+
+
+
+
+
+var TILE_WIDTH  = settings.spriteSize[0];
+
+var TILE_HEIGHT = settings.spriteSize[1];
+
+var GRAVITY     = 0.5;
+
+var MAX_GRAVITY = 2;
+
+
+
+
+
+var nextLevel, nextDoor, nextSide;
+
+
+
+// lock game when fade transition, text display, cutscene.
+
+var isLocked    = null;
+
+var fader       = new FadeTransition();
+
+var textDisplay = new TextDisplay();
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+function GameController() {
+
+	this.level       = level;
+
+	this.bob         = bob;
+
+	this.entities    = [];
+
+
+
+	level.controller = this;
+
+	bob.controller   = this;
+
+	Entity.prototype.controller = this;
+
+
+
+	this.checkpoint = {
+
+		levelId: 'ground0',
+
+		bob: null // TODO
+
+	};
+
+}
+
+
+
+module.exports = new GameController();
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.saveState = function () {
+
+	this.checkpoint = {
+
+		levelId: this.level.id,
+
+		bob: bob.saveState()
+
+	};
+
+};
+
+
+
+GameController.prototype.restoreState = function () {
+
+	if (!this.checkpoint) return;
+
+	this.loadLevel(this.checkpoint.id);
+
+	bob.restoreState(this.checkpoint.bob);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.addEntity = function (entity) {
+
+	this.entities.push(entity);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.removeEntity = function (entity) {
+
+	var index = this.entities.indexOf(entity);
+
+	if (index === -1) return console.warn('entity does not exist');
+
+	this.entities.splice(index, 1);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.loadLevel = function (id, doorId, side) {
+
+	this.entities = []; // remove all entities
+
+	var def = assets.levels[id];
+
+	if (!def) return console.error('Level does not exist', id);
+
+	level.init(id, def);
+
+	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
+
+	if (side) level.setBobPositionOnSide(bob, side);
+
+	bob.setPosition(level.bobPos);
+
+	paper(def.bgcolor);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.startFade = function () {
+
+	isLocked = fader;
+
+	var self = this;
+
+	fader.start(null, function () {
+
+		self.loadLevel(nextLevel, nextDoor, nextSide);
+
+		isLocked = false;
+
+	});
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.changeLevel = function (id, doorId) {
+
+	this.startFade();
+
+	nextLevel = id;
+
+	nextDoor  = doorId;
+
+	nextSide  = undefined;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.goToNeighbourLevel = function (direction) {
+
+	if (!level[direction]) return false;
+
+	this.startFade();
+
+	nextLevel = level[direction];
+
+	nextDoor  = undefined;
+
+	nextSide  = direction;
+
+	return true;
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.displayDialog = function (dialog) {
+
+	isLocked = textDisplay;
+
+	textDisplay.start(dialog, function () {
+
+		isLocked = null;
+
+	});
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.startCutScene = function (cutscene) {
+
+	isLocked = cutscene;
+
+	cutscene.start(function () {
+
+		isLocked = null;
+
+	});
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+GameController.prototype.update = function () {
+
+	if (isLocked) return isLocked.update();
+
+
+
+	if (btnp.B) return this.startCutScene(bossIntro()); // FIXME just for testing
+
+
+
+	bob.update();
+
+
+
+	var scrollX = clip(bob.x - 28, 0, level.width  * TILE_WIDTH  - 64);
+
+	var scrollY = clip(bob.y - 28, 0, level.height * TILE_HEIGHT - 64);
+
+
+
+	cls();
+
+	camera(scrollX, scrollY);
+
+	draw(level.background);
+
+	for (var i = 0; i < this.entities.length; i++) {
+
+		this.entities[i].update(level, bob); // update and draw
+
+	}
+
+	bob.draw();
+
+};
+
+
+},{"./Bob.js":38,"./Entity.js":40,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":45,"./cutscenes/bossIntro.js":46}],43:[function(require,module,exports){
+var Onion = require('./Onion.js');
+
+
+
+var TILE_WIDTH  = settings.spriteSize[0];
+
+var TILE_HEIGHT = settings.spriteSize[1];
+
+
+
+var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0 };
+
+var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true,  isWater: 0 };
+
+var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, canJumpThru: true };
+
+var VINE    = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isVine: true };
+
+var VINETOP = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, isVine: true, canJumpThru: true };
+
+var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 0 };
+
+var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 1 };
+
+var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 2 };
+
+var WATER   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 1 };
+
+var WATER_S = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 2 };
+
+var ENLIMIT = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isEntityLimit: true };
+
+
+
+
+
+function getTileFromMapItem(mapItem) {
+
+	if (!mapItem) return EMPTY;
+
+	switch (mapItem.sprite) {
+
+		case 0:  return SOLID;
+
+		case 1:  return ONE_WAY;
+
+		case 2:  return VINE;
+
+		case 3:  return VINETOP;
+
+		case 4:  return DOOR_0;
+
+		case 5:  return DOOR_1;
+
+		case 6:  return DOOR_2;
+
+		case 7:  return WATER;
+
+		case 8:  return WATER_S;
+
+		case 32: return ENLIMIT;
+
+		default: return EMPTY;
+
+	}
+
+}
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+function Level() {
+
+	this.id     = null;
+
+	this.map    = null;
+
+	this.bobPos = { x: 0, y: 0 };
+
+	this.grid   = [[]];
+
+	this.width  = 0;
+
+	this.height = 0;
+
+	this.doors  = [null, null, null];
+
+
+
+	this.background  = new Texture();
+
+}
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Level.prototype.init = function (id, def) {
+
+	var map = getMap(def.geometry);
+
+	var bobPosition = map.find(255)[0];
+
+
+
+	if (bobPosition) {
+
+		this.bobPos.x = bobPosition.x * TILE_WIDTH;
+
+		this.bobPos.y = bobPosition.y * TILE_HEIGHT;
+
+	}
+
+
+
+	this.map    = map;
+
+	this.grid   = map.copy().items;
+
+	this.width  = map.width;
+
+	this.height = map.height;
+
+	this.right  = def.right;
+
+	this.left   = def.left;
+
+	this.up     = def.up;
+
+	this.down   = def.down;
+
+
+
+	this._initDoors(map, def.doors);
+
+
+
+	for (var x = 0; x < map.width;  x++) {
+
+	for (var y = 0; y < map.height; y++) {
+
+		var item = map.items[x][y];
+
+		this.grid[x][y] = getTileFromMapItem(item);
+
+		this._addEntityFromMapItem(item);
+
+	}}
+
+
+
+	this._initBackground(def);
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Level.prototype._addEntityFromMapItem = function (item) {
+
+	if (!item || item.sprite < 128) return;
+
+	switch (item.sprite) {
+
+		case 128: // onion
+
+			var onion = new Onion().setPosition(item.x, item.y);
+
+			if (item.flipH) onion.setDirection(-1); 
+
+			this.controller.addEntity(onion);
+
+			break;
+
+	}
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Level.prototype._initBackground = function (def) {
+
+	var texture = this.background;
+
+	var mapId = def.background;
+
+	var map = getMap(mapId);
+
+	texture.resize(map.width * TILE_WIDTH, map.height * TILE_HEIGHT);
+
+	texture.draw(map);
+
+
+
+	var layerId = 1;
+
+	var layer = getMap(mapId + '_L' + layerId);
+
+	while (layer) {
+
+		texture.draw(layer);
+
+		layerId++;
+
+		layer = getMap(mapId + '_L' + layerId);
+
+	}
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Level.prototype._initDoors = function (map, doors) {
+
+	for (var i = 0; i < this.doors.length; i++) {
+
+		var position = map.find(4 + i)[0];
+
+		var door = doors[i] || '';
+
+		door = door.split(':');
+
+		var destinationLevel = door[0];
+
+		var doorId = door[1];
+
+
+
+		this.doors[i] = {
+
+			position: position,
+
+			level:    destinationLevel,
+
+			doorId:   doorId
+
+		};
+
+	}
+
+};
+
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
+Level.prototype.setBobPositionOnDoor = function (doorId) {
+
+	var door = this.doors[doorId];
+
+	if (!door || !door.position) return console.error('level does not contain door id', doorId);
+
+
 
 	this.bobPos.x = door.position.x * TILE_WIDTH;
+
 	this.bobPos.y = door.position.y * TILE_HEIGHT;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Level.prototype.setBobPositionOnSide = function (bob, direction) {
+
 	if (direction === 'right' || direction === 'left') {
+
 		// horizontal translation
+
 		this.bobPos.y = bob.y;
+
 		this.bobPos.x = direction === 'right' ? -4 : this.width * TILE_WIDTH - 4;
+
 	} else {
+
 		// vertical translation
+
 		this.bobPos.x = bob.x;
+
 		this.bobPos.y = direction === 'down' ? -1 : this.height * TILE_WIDTH - 7;
+
 	}
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Level.prototype.getTileAt = function (x, y) {
+
 	x = ~~(x / TILE_WIDTH);
+
 	y = ~~(y / TILE_HEIGHT);
+
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return EMPTY;
+
 	return this.grid[x][y];
+
 };
+
+
 
 module.exports = new Level();
 },{"./Onion.js":44}],44:[function(require,module,exports){
 var Entity        = require('./Entity.js');
+
 var AABBcollision = require('./AABBcollision.js');
 
+
+
 var a = assets.entities.onion;
+
 var walk   = [a.walk0, a.walk1, a.walk2, a.walk3, a.walk4];
+
 var attack = [a.attack0, a.attack1, a.attack2, a.attack4];
+
 var hitImg = a.hit;
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 function Onion() {
+
 	Entity.call(this);
 
+
+
 	// properties
+
 	this.isAttackable = true;
 
+
+
 	// physic
+
 	this.gravity    = 0.12;
+
 	this.maxGravity = 1;
 
+
+
 	// onion properties
+
 	this.speed     = 0.25;
+
 	this.direction = 1;
+
 	this.isHit       = false;
+
 	this.hitCounter = 0;
 
+
+
 	// rendering & animation
+
 	this.flipH     = false;
+
 	this.frame     = 0;
+
 	this.animSpeed = 0.12;
+
 	this.anim      = walk;
 
+
+
 	// state
+
 	this.springCounter = 0;
+
 	this.jumping = false;
+
 }
+
 inherits(Onion, Entity);
+
+
 
 module.exports = Onion;
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Onion.prototype.move = function (level, bob) {
 
+
+
 	if (!this.isHit && bob.isAttackable && AABBcollision(this, bob)) {
+
 		// collision with Bob detected
+
 		bob.hit(this);
+
 	}
+
+
 
 	// keep in bounds
+
 	if (level.getTileAt(this.x + 4 + this.direction * 6, this.y + 4).isEntityLimit) {
+
 		// turn around
+
 		this.direction *= -1;
+
 		this.flipH = this.direction === -1;
+
 		this.sx = 0;
+
 	}
+
+
 
 	// states
+
 	if (this.isHit) {
+
 		if (this.hitCounter++ > 16) {
+
 			// hit end
+
 			this.isHit = false;
+
 			this.isAttackable = true;
+
 		}
+
 	} else if (this.grounded && this.springCounter++ > 60) {
+
 		this.springCounter = 0;
+
 		this.sy = -2;
+
 		this.grounded = false;
+
 		this.jumping = true;
+
 		this.anim = attack;
+
 		this.frame = 0;
+
 		return true
+
 	}
+
+
 
 	// walking
+
 	if (this.grounded) {
+
 		this.sx = this.speed * this.direction;
+
 		// test next front ground
+
 		if (level.getTileAt(this.x + 4 + this.direction * 2, this.y + 10).isEmpty) {
+
 			// turn around
+
 			this.direction *= -1;
+
 			this.flipH = this.direction === -1;
+
 		}
+
 	} else {
+
 		this.fall();
+
 	}
+
 	return true;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Onion.prototype.onGrounds = function () {
+
 	this.jumping = false;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Onion.prototype.collideFront = function () {
+
 	// make entity turn around
+
 	this.sx = 0;
+
 	this.direction *= -1;
+
 	this.flipH = this.direction === -1;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Onion.prototype.animate = function () {
+
 	if (this.isHit) {
+
 		draw(hitImg, this.x, this.y - 8, this.flipH);
+
 		return;
+
 	}
+
 	this.frame += this.animSpeed;
+
 	if (this.anim === attack) {
+
 		if (this.frame >= this.anim.length) {
+
 			this.anim = walk;
+
 			this.frame = 0;
+
 		}
+
 	}
+
 	if (this.frame >= this.anim.length) this.frame = 0;
+
 	var img = this.anim[~~this.frame];
+
 	draw(img, this.x, this.y - 8, this.flipH);
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Onion.prototype.setDirection = function (direction) {
+
 	this.direction = direction;
+
 	this.flipH = this.direction === -1;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 Onion.prototype.hit = function (attacker) {
+
 	// TODO
+
 	// from where do hit comes from ?
+
 	this.grounded = false;
+
 	this.springCounter = 0;
+
 	if (attacker.x < this.x) {
+
 		this.direction = -1;
+
 		this.flipH = true;
+
 		this.sx = 1;
+
 	} else {
+
 		this.direction = 1;
+
 		this.flipH = false;
+
 		this.sx = -1;
+
 	}
+
 	this.isHit = true;
+
 	this.hitCounter = 0;
+
 	this.isAttackable = false;
+
 	this.sy = -2;
+
 	// this.controller.removeEntity(this);
+
 	// TODO add explosion animation
+
 };
+
 
 },{"./AABBcollision.js":37,"./Entity.js":40}],45:[function(require,module,exports){
 TextDisplay = function () {
+
 	this.textWindow = new Texture(64, 19);
+
 	this.textBuffer = '';
+
 	this.textParts  = [];
+
 	this.dialog     = [];
+
 	this.onFinishCallback = null;
+
 }
+
+
 
 module.exports = TextDisplay;
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 TextDisplay.prototype.start = function (dialog, cb) {
+
 	this.onFinishCallback = cb;
+
 	// make a copy of dialog
+
 	this.dialog = JSON.parse(JSON.stringify(dialog));
+
 	this._setDialog();
+
 	return this;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 /** return true if there is still some text to be displayed */
+
 TextDisplay.prototype.update = function () {
+
 	camera(0, 0);
+
 	draw(this.textWindow, 0, 0);
+
 	if (this.textBuffer.length) {
+
 		if (btnp.A) {
+
 			// fast forward
+
 			this.textWindow.print(this.textBuffer);
+
 			this.textBuffer = '';
+
 			return true;
+
 		}
+
 		// character by character animation
+
 		var character = this.textBuffer[0];
+
 		this.textWindow.print(character);
+
 		this.textBuffer = this.textBuffer.substr(1);
+
 	} else if (btnp.A) {
+
 		// require next line
+
 		if (this.textParts.length === 0) {
+
 			if (this.dialog.length) {
+
 				this._setDialog();
+
 				return true;
+
 			}
+
 			this.onFinishCallback && this.onFinishCallback();
+
 			this.onFinishCallback = null;
+
 			return false;
+
 		}
+
 		for (var i = 0; i < 3; i++) {
+
 			this.textBuffer += '\n';
+
 			this.textBuffer += this.textParts.shift();
+
 			if (this.textParts.length === 0) break;
+
 		}
+
 	}
+
 	return true;
+
 };
 
+
+
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
 TextDisplay.prototype._setDialog = function () {
+
 	this.textWindow.cls();
+
+
 
 	var currentDialog = this.dialog.shift();
 
+
+
 	var who  = currentDialog.who;
+
 	var text = currentDialog.text;
 
+
+
 	switch (who) {
+
 		case 'bob':   this.textWindow.pen(10); break;
+
 		case 'boss':  this.textWindow.pen(4); break;
+
 		case 'stump': this.textWindow.pen(3); break;
+
 		default: this.textWindow.pen(1);
+
 	}
+
+
 
 	// split text with end line character
+
 	var textParts = text.split('\n');
 
+
+
 	// check each line length and further split if too long
+
 	for (var i = 0; i < textParts.length; i++) {
+
 		textPart = textParts[i];
+
 		if (textPart.length < 16) {
+
 			textParts[i] = [textPart];
+
 			continue;
+
 		}
+
 		var words = textPart.split(' ');
+
 		textPart = [];
+
 		var buffer = '';
+
 		for (var j = 0; j < words.length; j++) {
+
 			var word = words[j];
+
 			if (buffer.length + word.length >= 16) {
+
 				// flush buffer
+
 				textPart.push(buffer);
+
 				buffer = '';
+
 			}
+
 			if (buffer.length) buffer += ' ';
+
 			buffer += word;
+
 		}
+
 		textPart.push(buffer);
+
 		textParts[i] = textPart;
+
 	}
 
+
+
 	// merge back lines
+
 	this.textParts = [].concat.apply([], textParts);
 
+
+
 	// add the first 3 lines to be printed
+
 	this.textBuffer += this.textParts.shift() + '\n' + (this.textParts.shift() || '') + '\n' + (this.textParts.shift() || '');
+
 };
 
+
 },{}],46:[function(require,module,exports){
+<<<<<<< HEAD
 var CutScene = require('../CutScene.js');
 
 function bossIntro() {
@@ -7884,6 +14563,134 @@ function bossIntro() {
 }
 
 module.exports = bossIntro;
+=======
+var CutScene = require('../CutScene.js');
+
+
+
+function bossIntro() {
+
+
+
+	//------------------------------------------------------------
+
+	// create an empty cutscene
+
+	var cutscene = new CutScene();
+
+
+
+	//------------------------------------------------------------
+
+	// add a fading transition animation
+
+	cutscene.addFade();
+
+
+
+	//------------------------------------------------------------
+
+	// enqueue a function: this one clear screen and draw the boss room
+
+	var bossRoom = getMap('bossCutScene');
+
+	cutscene.enqueue(function () {
+
+		camera(0, 0);   // camera needs to be reset before drawing scene
+
+		paper(0).cls(); // set background color to 0 (black) and clear screen
+
+		draw(bossRoom); // draw boss room
+
+		// TODO draw the boss
+
+	});
+
+
+
+	//------------------------------------------------------------
+
+	// add a waiting delay of 0.2 seconds
+
+	cutscene.addDelay(0.2);
+
+
+
+	//------------------------------------------------------------
+
+	// add an animation.
+
+	// an animation is a function that will be called every frame until its returns true
+
+	var onionX = -7;
+
+	var onionFrame = 0;
+
+	cutscene.addAnimation(function () {
+
+		onionX += 0.5;
+
+
+
+		// to make the onion guy walk animation. TODO: create an animator to abstract this
+
+		onionFrame += 0.2;
+
+		if (onionFrame > 4) onionFrame = 0;
+
+		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
+
+
+
+		// draw the scene
+
+		cls();
+
+		draw(bossRoom);
+
+		// TODO draw the boss
+
+		draw(onionImage, onionX, 40);
+
+		if (onionX < 10) return false; // continue the animation
+
+
+
+		return true; // ends the animation
+
+	});
+
+
+
+	//------------------------------------------------------------
+
+	// display a dialog
+
+	cutscene.addDialog(assets.dialogs.bossIntro);
+
+
+
+	//------------------------------------------------------------
+
+	// add a last fade before going back to the game
+
+	cutscene.addFade();
+
+
+
+	//------------------------------------------------------------
+
+	// return the cutscene	
+
+	return cutscene;
+
+}
+
+
+
+module.exports = bossIntro;
+
+>>>>>>> upstream/master
 
 },{"../CutScene.js":39}],47:[function(require,module,exports){
 var CutScene = require('../CutScene.js');
