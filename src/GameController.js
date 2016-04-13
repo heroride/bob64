@@ -3,10 +3,12 @@ var bob            = require('./Bob.js');
 var TextDisplay    = require('./TextDisplay.js');
 var Entity         = require('./Entity.js');
 var FadeTransition = require('./FadeTransition.js');
+
+// cutscenes
 var bossIntro      = require('./cutscenes/bossIntro.js');
-var cloudFairy      = require('./cutscenes/cloudFairy.js');
-var firstFairy      = require('./cutscenes/firstFairy.js');
-var secondFairy      = require('./cutscenes/secondFairy.js');
+var cloudFairy     = require('./cutscenes/cloudFairy.js');
+var firstFairy     = require('./cutscenes/firstFairy.js');
+var secondFairy    = require('./cutscenes/secondFairy.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];

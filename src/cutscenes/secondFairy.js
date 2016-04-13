@@ -12,7 +12,7 @@ function secondFairy() {
 
 	//------------------------------------------------------------
 	// enqueue a function: this one clear screen and draw the boss room
-	var bossRoom = getMap('ground3');
+	var background = getMap('ground3');
 	cutscene.enqueue(function () {
 		camera(0, 0);   // camera needs to be reset before drawing scene
 		paper(0).cls(); // set background color to 0 (black) and clear screen
@@ -37,7 +37,7 @@ function secondFairy() {
 
 		// draw the scene
 		cls();
-		draw(bossRoom);
+		draw(background);
 		// TODO draw the boss
 		draw(onionImage, onionX, 40);
 		if (onionX < 10) return false; // continue the animation
@@ -50,10 +50,10 @@ function secondFairy() {
 	cutscene.enqueue(function () {
 	var onionImage = assets.entities.onion['walk' + ~~onionFrame];
 	
-		bossRoom = getMap('bossCutScene');
+		background = getMap('bossCutScene');
 		cls(); // set background color to 0 (black) and clear screen
 		
-		draw(bossRoom); // draw boss room
+		draw(background); // draw boss room
 		draw(onionImage, onionX, 40);
 		// TODO draw the boss
 	});
