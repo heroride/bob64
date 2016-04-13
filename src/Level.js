@@ -49,8 +49,13 @@ function Level() {
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-Level.prototype.init = function (id, def) {
+Level.prototype.load = function (id) {
 	this.id = id;
+
+	var def = assets.levels[id];
+	if (!def) return console.error('Level does not exist', id);
+	paper(def.bgcolor);
+
 	var map = getMap(def.geometry);
 	var bobPosition = map.find(255)[0];
 
@@ -155,5 +160,11 @@ Level.prototype.getTileAt = function (x, y) {
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return EMPTY;
 	return this.grid[x][y];
 };
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.draw = function () {
+	// TODO background animations
+	draw(this.background);
+}
 
 module.exports = new Level();

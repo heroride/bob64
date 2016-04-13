@@ -70,10 +70,7 @@ GameController.prototype.removeEntity = function (entity) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.loadLevel = function (id, doorId, side) {
 	this.entities = []; // remove all entities
-	var def = assets.levels[id];
-	if (!def) return console.error('Level does not exist', id);
-	paper(def.bgcolor);
-	level.init(id, def);
+	level.load(id);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos);
@@ -148,7 +145,7 @@ GameController.prototype.update = function () {
 
 	cls();
 	camera(scrollX, scrollY);
-	draw(level.background);
+	level.draw();
 	for (var i = 0; i < this.entities.length; i++) {
 		this.entities[i].update(level, bob); // update and draw
 	}
