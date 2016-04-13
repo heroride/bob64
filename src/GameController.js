@@ -8,13 +8,15 @@ var FadeTransition = require('./FadeTransition.js');
 var bossIntro      = require('./cutscenes/bossIntro.js');
 var cloudFairy     = require('./cutscenes/cloudFairy.js');
 var firstFairy     = require('./cutscenes/firstFairy.js');
+var waterFairy     = require('./cutscenes/waterFairy.js');
 var secondFairy    = require('./cutscenes/secondFairy.js');
+var fireFairy      = require('./cutscenes/fireFairy.js');
+var lastFairy      = require('./cutscenes/lastFairy.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
 var GRAVITY     = 0.5;
 var MAX_GRAVITY = 2;
-
 
 var nextLevel, nextDoor, nextSide;
 
@@ -139,7 +141,7 @@ GameController.prototype.killBob = function (params) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(bossIntro()); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(lastFairy()); // FIXME just for testing
 
 	bob.update();
 
