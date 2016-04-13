@@ -53,7 +53,7 @@ GameController.prototype.saveState = function () {
 
 GameController.prototype.restoreState = function () {
 	if (!this.checkpoint) return;
-	this.loadLevel(this.checkpoint.id);
+	this.loadLevel(this.checkpoint.levelId);
 	bob.restoreState(this.checkpoint.bob);
 };
 
@@ -74,11 +74,12 @@ GameController.prototype.loadLevel = function (id, doorId, side) {
 	this.entities = []; // remove all entities
 	var def = assets.levels[id];
 	if (!def) return console.error('Level does not exist', id);
+	paper(def.bgcolor);
 	level.init(id, def);
 	if (doorId !== undefined) level.setBobPositionOnDoor(doorId);
 	if (side) level.setBobPositionOnSide(bob, side);
 	bob.setPosition(level.bobPos);
-	paper(def.bgcolor);
+	if (doorId || doorId === 0) this.saveState();
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -87,7 +88,7 @@ GameController.prototype.startFade = function () {
 	var self = this;
 	fader.start(null, function () {
 		self.loadLevel(nextLevel, nextDoor, nextSide);
-		isLocked = false;
+		isLocked = null;
 	});
 };
 
@@ -122,6 +123,17 @@ GameController.prototype.startCutScene = function (cutscene) {
 	isLocked = cutscene;
 	cutscene.start(function () {
 		isLocked = null;
+	});
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+GameController.prototype.killBob = function (params) {
+	var self = this;
+	// BIG HACK FIX THIS
+	isLocked = fader;
+	fader.start(null, function () {
+		self.restoreState();
+		isLocked = false;
 	});
 };
 
