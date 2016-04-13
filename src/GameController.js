@@ -126,7 +126,6 @@ GameController.prototype.startCutScene = function (cutscene) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.killBob = function (params) {
 	var self = this;
-	// BIG HACK FIX THIS
 	isLocked = fader;
 	fader.start(null, function () {
 		self.restoreState();
@@ -138,7 +137,7 @@ GameController.prototype.killBob = function (params) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(lastFairy()); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(waterFairy()); // FIXME just for testing
 
 	bob.update();
 
