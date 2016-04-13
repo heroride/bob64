@@ -127,7 +127,7 @@ GameController.prototype.startCutScene = function (cutscene) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(cloudFairy()); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(bossIntro()); // FIXME just for testing
 
 	bob.update();
 

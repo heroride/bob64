@@ -6268,8 +6268,8 @@ function keyChange(keyCode, isPressed) {
 	button[key] = isPressed;
 }
 
-window.addEventListener('keydown', function onKeyPressed(e) { keyChange(e.keyCode, true);  });
-window.addEventListener('keyup',   function onKeyRelease(e) { keyChange(e.keyCode, false); });
+window.addEventListener('keydown', function onKeyPressed(e) { e.preventDefault(); keyChange(e.keyCode, true);  });
+window.addEventListener('keyup',   function onKeyRelease(e) { e.preventDefault(); keyChange(e.keyCode, false); });
 
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6906,6 +6906,17 @@ CutScene.prototype.enqueue = function (fn) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+CutScene.prototype.addBackgroundChange = function (color, image) {
+	this._actions.push(function () {
+		camera(0, 0);
+		paper(color);
+		cls();
+		if (image) draw(image);
+	});
+	return this;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 CutScene.prototype.addDialog = function (dialog) {
 	this._actions.push(function () {
 		this._displayDialog(dialog);
@@ -7293,7 +7304,7 @@ GameController.prototype.startCutScene = function (cutscene) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(cloudFairy()); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(bossIntro()); // FIXME just for testing
 
 	bob.update();
 
@@ -7789,32 +7800,19 @@ module.exports = bossIntro;
 var CutScene = require('../CutScene.js');
 
 function cloudFairy() {
-
-	//------------------------------------------------------------
-	// create an empty cutscene
 	var cutscene = new CutScene();
-
-	//------------------------------------------------------------
-	// add a fading transition animation
 	cutscene.addFade();
 
 	//------------------------------------------------------------
-	// enqueue a function: this one clear screen and draw the boss room
+	// clear screen and draw background
 	var background = getMap('bossCutScene'); // TODO
-	cutscene.enqueue(function () {
-		camera(0, 0);   // camera needs to be reset before drawing scene
-		paper(0).cls(); // set background color to 0 (black) and clear screen
-		draw(background); // draw boss room
-	});
+	cutscene.addBackgroundChange(0);
 
 	//------------------------------------------------------------
-	// add an animation.
-	// an animation is a function that will be called every frame until its returns true
+	// bob walk in animation
 	var bobX = -12;
 	var bobFrame = 0;
 	cutscene.addAnimation(function () {
-
-		// bob walk in
 		bobX += 0.5;
 		bobFrame += 0.2;
 		if (bobFrame > 3) bobFrame = 0;
@@ -7830,20 +7828,16 @@ function cloudFairy() {
 			return false;
 		}
 		
-		draw(fairyImage, 40, 30, true);
+		draw(fairyImage, 40, 30, true); // flip fairy
 		return true;
 	});
 	
 	//------------------------------------------------------------
-	// display a dialog
+	// dialog
 	cutscene.addDialog(assets.dialogs.cloudFairy);
 
-	//------------------------------------------------------------
-	// add a last fade before going back to the game
 	cutscene.addFade();
 
-	//------------------------------------------------------------
-	// return the cutscene	
 	return cutscene;
 }
 
