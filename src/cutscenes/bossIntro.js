@@ -39,8 +39,9 @@ function bossIntro() {
 		// draw the scene
 		cls();
 		draw(bossRoom);
-		// TODO draw the boss
 		onionGuy.draw();
+		// TODO draw the boss
+
 		if (onionGuy.x < 10) return false; // continue the animation
 
 		return true; // ends the animation

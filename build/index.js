@@ -7354,11 +7354,11 @@ var FadeTransition = require('./FadeTransition.js');
 // cutscenes
 var bossIntro      = require('./cutscenes/bossIntro.js');
 var cloudFairy     = require('./cutscenes/cloudFairy.js');
-var firstFairy     = require('./cutscenes/firstFairy.js');
+var bossFirstFairy = require('./cutscenes/bossFirstFairy.js');
 var waterFairy     = require('./cutscenes/waterFairy.js');
-var secondFairy    = require('./cutscenes/secondFairy.js');
+var bossSecondFairy= require('./cutscenes/bossSecondFairy.js');
 var fireFairy      = require('./cutscenes/fireFairy.js');
-var lastFairy      = require('./cutscenes/lastFairy.js');
+var bossLastFairy  = require('./cutscenes/bossLastFairy.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -7473,7 +7473,6 @@ GameController.prototype.startCutScene = function (cutscene) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.killBob = function (params) {
 	var self = this;
-	// BIG HACK FIX THIS
 	isLocked = fader;
 	fader.start(null, function () {
 		self.restoreState();
@@ -7485,7 +7484,7 @@ GameController.prototype.killBob = function (params) {
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
 
-	if (btnp.B) return this.startCutScene(waterFairy()); // FIXME just for testing
+	if (btnp.B) return this.startCutScene(bossFirstFairy()); // FIXME just for testing
 
 	bob.update();
 
@@ -7501,7 +7500,7 @@ GameController.prototype.update = function () {
 	bob.draw();
 };
 
-},{"./Bob.js":39,"./Entity.js":41,"./FadeTransition.js":42,"./Level.js":44,"./TextDisplay.js":46,"./cutscenes/bossIntro.js":47,"./cutscenes/cloudFairy.js":48,"./cutscenes/fireFairy.js":49,"./cutscenes/firstFairy.js":50,"./cutscenes/lastFairy.js":51,"./cutscenes/secondFairy.js":52,"./cutscenes/waterFairy.js":53}],44:[function(require,module,exports){
+},{"./Bob.js":39,"./Entity.js":41,"./FadeTransition.js":42,"./Level.js":44,"./TextDisplay.js":46,"./cutscenes/bossFirstFairy.js":47,"./cutscenes/bossIntro.js":48,"./cutscenes/bossLastFairy.js":49,"./cutscenes/bossSecondFairy.js":50,"./cutscenes/cloudFairy.js":51,"./cutscenes/fireFairy.js":52,"./cutscenes/waterFairy.js":53}],44:[function(require,module,exports){
 var Onion = require('./Onion.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -7936,6 +7935,81 @@ var AnimatedSprite = require('../AnimatedSprite.js');
 var onion = assets.entities.onion;
 var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
 
+function bossFirstFairy() {
+
+	//------------------------------------------------------------
+	// create an empty cutscene
+	var cutscene = new CutScene();
+
+	//------------------------------------------------------------
+	// add a fading transition animation
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// enqueue a function: this one clear screen and draw the boss room
+	var bossRoom = getMap('bossCutScene');
+	cutscene.enqueue(function () {
+		camera(0, 0);   // camera needs to be reset before drawing scene
+		paper(0).cls(); // set background color to 0 (black) and clear screen
+		draw(bossRoom); // draw boss room
+		// TODO draw the boss
+	});
+
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(1);
+
+	//------------------------------------------------------------
+	// add an animation.
+	// an animation is a function that will be called every frame until its returns true
+	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(-6, 40);
+	var counter = 0;
+	cutscene.addAnimation(function () {
+		if (++counter % 60 > 20) return false;
+		onionGuy.x += 0.25;
+		// draw the scene
+		cls();
+		draw(bossRoom);
+		// TODO draw the boss
+		onionGuy.draw();
+		if (onionGuy.x < 13) return false; // continue the animation
+		return true; // ends the animation
+	});
+	
+	cutscene.addDelay(1);
+	
+	// cutscene.addAnimation(function () {
+	// 	onionGuy.x += 0.5;
+	// 	cls();
+	// 	draw(bossRoom);
+	// 	onionGuy.draw();
+	// 	// TODO draw the boss
+	// 	if (onionGuy.x < 10) return false; // continue the animation
+	// 	return true; // ends the animation
+	// });
+
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.bossFirstFairy);
+
+	//------------------------------------------------------------
+	// add a last fade before going back to the game
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// return the cutscene	
+	return cutscene;
+}
+
+module.exports = bossFirstFairy;
+
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],48:[function(require,module,exports){
+var CutScene       = require('../CutScene.js');
+var AnimatedSprite = require('../AnimatedSprite.js');
+
+var onion = assets.entities.onion;
+var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+
 function bossIntro() {
 
 	//------------------------------------------------------------
@@ -7971,8 +8045,9 @@ function bossIntro() {
 		// draw the scene
 		cls();
 		draw(bossRoom);
-		// TODO draw the boss
 		onionGuy.draw();
+		// TODO draw the boss
+
 		if (onionGuy.x < 10) return false; // continue the animation
 
 		return true; // ends the animation
@@ -7993,7 +8068,149 @@ function bossIntro() {
 
 module.exports = bossIntro;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],48:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],49:[function(require,module,exports){
+var CutScene       = require('../CutScene.js');
+var AnimatedSprite = require('../AnimatedSprite.js');
+
+var onion = assets.entities.onion;
+var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+
+function bossLastFairy() {
+
+	//------------------------------------------------------------
+	// create an empty cutscene
+	var cutscene = new CutScene();
+
+	//------------------------------------------------------------
+	// add a fading transition animation
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// enqueue a function: this one clear screen and draw the boss room
+	var background = getMap('ground3');
+	cutscene.enqueue(function () {
+		camera(0, 0);   // camera needs to be reset before drawing scene
+		paper(0).cls(); // set background color to 0 (black) and clear screen
+	});
+
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(0.2);
+
+	//------------------------------------------------------------
+	// add an animation.
+	// an animation is a function that will be called every frame until its returns true
+	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(-7, 40);
+	cutscene.addAnimation(function () {
+		onionGuy.x += 0.8;
+		cls();
+		draw(background);
+		onionGuy.draw();
+		// TODO draw the boss
+		if (onionGuy.x < 10) return false; // continue the animation
+		return true; // ends the animation
+	});
+	
+	cutscene.addDelay(1);
+	
+	cutscene.enqueue(function () {
+		background = getMap('bossCutScene');
+		cls(); // set background color to 0 (black) and clear screen
+		draw(background); // draw boss room
+		onionGuy.draw();
+		// TODO draw the boss
+	});
+	
+	cutscene.addDelay(1);
+	
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.bossLastFairy);
+
+	//------------------------------------------------------------
+	// add a last fade before going back to the game
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// return the cutscene	
+	return cutscene;
+}
+
+module.exports = bossLastFairy;
+
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],50:[function(require,module,exports){
+var CutScene       = require('../CutScene.js');
+var AnimatedSprite = require('../AnimatedSprite.js');
+
+var onion = assets.entities.onion;
+var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+
+function bossSecondFairy() {
+
+	//------------------------------------------------------------
+	// create an empty cutscene
+	var cutscene = new CutScene();
+
+	//------------------------------------------------------------
+	// add a fading transition animation
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// enqueue a function: this one clear screen and draw the boss room
+	var background = getMap('ground3');
+	cutscene.enqueue(function () {
+		camera(0, 0);   // camera needs to be reset before drawing scene
+		paper(0).cls(); // set background color to 0 (black) and clear screen
+	});
+
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(0.2);
+
+	//------------------------------------------------------------
+	// add an animation.
+	// an animation is a function that will be called every frame until its returns true
+	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(-7, 40);
+	cutscene.addAnimation(function () {
+		onionGuy.x += 0.8;
+		cls();
+		draw(background);
+		// TODO draw the boss
+		onionGuy.draw();
+		if (onionGuy.x < 10) return false; // continue the animation
+		return true; // ends the animation
+	});
+	
+	cutscene.addDelay(1);
+	
+	//------------------------------------------------------------
+	cutscene.enqueue(function () {
+		// turn the light on
+		background = getMap('bossCutScene'); // TODO
+		cls(); // set background color to 0 (black) and clear screen
+		draw(background); // draw boss room
+		onionGuy.draw();
+		// TODO draw the boss
+	});
+	
+	cutscene.addDelay(1);
+	
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.bossSecondFairy);
+
+	//------------------------------------------------------------
+	// add a last fade before going back to the game
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// return the cutscene	
+	return cutscene;
+}
+
+module.exports = bossSecondFairy;
+
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],51:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
 
@@ -8040,7 +8257,7 @@ function cloudFairy() {
 
 module.exports = cloudFairy;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],49:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],52:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
 
@@ -8087,268 +8304,7 @@ function fireFairy() {
 
 module.exports = fireFairy;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],50:[function(require,module,exports){
-var CutScene = require('../CutScene.js');
-
-function firstFairy() {
-
-	//------------------------------------------------------------
-	// create an empty cutscene
-	var cutscene = new CutScene();
-
-	//------------------------------------------------------------
-	// add a fading transition animation
-	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// enqueue a function: this one clear screen and draw the boss room
-	var bossRoom = getMap('bossCutScene');
-	cutscene.enqueue(function () {
-		camera(0, 0);   // camera needs to be reset before drawing scene
-		paper(0).cls(); // set background color to 0 (black) and clear screen
-		draw(bossRoom); // draw boss room
-		// TODO draw the boss
-	});
-
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
-
-	//------------------------------------------------------------
-	// add an animation.
-	// an animation is a function that will be called every frame until its returns true
-	var onionX = -7;
-	var onionFrame = 0;
-	
-	cutscene.addAnimation(function () {
-		onionX += 0.5;
-
-		// to make the onion guy walk animation. TODO: create an animator to abstract this
-		onionFrame += 0.2;
-		if (onionFrame > 4) onionFrame = 0;
-		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-
-		// draw the scene
-		cls();
-		draw(bossRoom);
-		// TODO draw the boss
-		draw(onionImage, onionX, 40);
-		
-		return true; // ends the animation
-	});
-	
-	cutscene.addDelay(1);
-	
-	cutscene.addAnimation(function () {
-		onionX += 0.5;
-
-		// to make the onion guy walk animation. TODO: create an animator to abstract this
-		onionFrame += 0.2;
-		if (onionFrame > 4) onionFrame = 0;
-		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-
-		// draw the scene
-		cls();
-		draw(bossRoom);
-		// TODO draw the boss
-		draw(onionImage, onionX, 40);
-		if (onionX < 3) return false; // continue the animation
-		
-		return true; // ends the animation
-	});
-	
-	cutscene.addDelay(1);
-	
-	cutscene.addAnimation(function () {
-		onionX += 0.5;
-
-		// to make the onion guy walk animation. TODO: create an animator to abstract this
-		onionFrame += 0.2;
-		if (onionFrame > 4) onionFrame = 0;
-		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-
-		// draw the scene
-		cls();
-		draw(bossRoom);
-		// TODO draw the boss
-		draw(onionImage, onionX, 40);
-		if (onionX < 10) return false; // continue the animation
-		
-		return true; // ends the animation
-	});
-
-	//------------------------------------------------------------
-	// display a dialog
-	cutscene.addDialog(assets.dialogs.firstFairy);
-
-	//------------------------------------------------------------
-	// add a last fade before going back to the game
-	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// return the cutscene	
-	return cutscene;
-}
-
-module.exports = firstFairy;
-
-},{"../CutScene.js":40}],51:[function(require,module,exports){
-var CutScene = require('../CutScene.js');
-
-function lastFairy() {
-
-	//------------------------------------------------------------
-	// create an empty cutscene
-	var cutscene = new CutScene();
-
-	//------------------------------------------------------------
-	// add a fading transition animation
-	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// enqueue a function: this one clear screen and draw the boss room
-	var background = getMap('ground3');
-	cutscene.enqueue(function () {
-		camera(0, 0);   // camera needs to be reset before drawing scene
-		paper(0).cls(); // set background color to 0 (black) and clear screen
-	});
-
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
-
-	//------------------------------------------------------------
-	// add an animation.
-	// an animation is a function that will be called every frame until its returns true
-	var onionX = -7;
-	var onionFrame = 0;
-	cutscene.addAnimation(function () {
-		onionX += 0.8;
-
-		// to make the onion guy walk animation. TODO: create an animator to abstract this
-		onionFrame += 0.2;
-		if (onionFrame > 4) onionFrame = 0;
-		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-
-		// draw the scene
-		cls();
-		draw(background);
-		// TODO draw the boss
-		draw(onionImage, onionX, 40);
-		if (onionX < 10) return false; // continue the animation
-
-		return true; // ends the animation
-	});
-	
-	cutscene.addDelay(1);
-	
-	cutscene.enqueue(function () {
-	var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-	
-		background = getMap('bossCutScene');
-		cls(); // set background color to 0 (black) and clear screen
-		
-		draw(background); // draw boss room
-		draw(onionImage, onionX, 40);
-		// TODO draw the boss
-	});
-	
-	cutscene.addDelay(1);
-	
-	//------------------------------------------------------------
-	// display a dialog
-	cutscene.addDialog(assets.dialogs.lastFairy);
-
-	//------------------------------------------------------------
-	// add a last fade before going back to the game
-	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// return the cutscene	
-	return cutscene;
-}
-
-module.exports = lastFairy;
-
-},{"../CutScene.js":40}],52:[function(require,module,exports){
-var CutScene = require('../CutScene.js');
-
-function secondFairy() {
-
-	//------------------------------------------------------------
-	// create an empty cutscene
-	var cutscene = new CutScene();
-
-	//------------------------------------------------------------
-	// add a fading transition animation
-	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// enqueue a function: this one clear screen and draw the boss room
-	var background = getMap('ground3');
-	cutscene.enqueue(function () {
-		camera(0, 0);   // camera needs to be reset before drawing scene
-		paper(0).cls(); // set background color to 0 (black) and clear screen
-	});
-
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
-
-	//------------------------------------------------------------
-	// add an animation.
-	// an animation is a function that will be called every frame until its returns true
-	var onionX = -7;
-	var onionFrame = 0;
-	cutscene.addAnimation(function () {
-		onionX += 0.8;
-
-		// to make the onion guy walk animation. TODO: create an animator to abstract this
-		onionFrame += 0.2;
-		if (onionFrame > 4) onionFrame = 0;
-		var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-
-		// draw the scene
-		cls();
-		draw(background);
-		// TODO draw the boss
-		draw(onionImage, onionX, 40);
-		if (onionX < 10) return false; // continue the animation
-
-		return true; // ends the animation
-	});
-	
-	cutscene.addDelay(1);
-	
-	cutscene.enqueue(function () {
-	var onionImage = assets.entities.onion['walk' + ~~onionFrame];
-	
-		background = getMap('bossCutScene');
-		cls(); // set background color to 0 (black) and clear screen
-		
-		draw(background); // draw boss room
-		draw(onionImage, onionX, 40);
-		// TODO draw the boss
-	});
-	
-	cutscene.addDelay(1);
-	
-	//------------------------------------------------------------
-	// display a dialog
-	cutscene.addDialog(assets.dialogs.secondFairy);
-
-	//------------------------------------------------------------
-	// add a last fade before going back to the game
-	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// return the cutscene	
-	return cutscene;
-}
-
-module.exports = secondFairy;
-
-},{"../CutScene.js":40}],53:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],53:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
 
