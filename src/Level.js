@@ -1,4 +1,5 @@
-var Onion = require('./Onion.js');
+var Onion = require('./entities/Onion.js');
+var Stump = require('./entities/Stump.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -83,17 +84,25 @@ Level.prototype.load = function (id) {
 	}}
 
 	this._initBackground(def);
+
+	if (def.cutscene) {
+		this.controller.startCutScene(def.cutscene());
+		def.cutscene = null; // make sure to play cutscene only once
+	}
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype._addEntity = function (entityClass, item) {
+	var entity = new entityClass().setPosition(item.x, item.y);
+	if (item.flipH) entity.setDirection(-1); 
+	this.controller.addEntity(entity);
+};
+
 Level.prototype._addEntityFromMapItem = function (item) {
 	if (!item || item.sprite < 128) return;
 	switch (item.sprite) {
-		case 128: // onion
-			var onion = new Onion().setPosition(item.x, item.y);
-			if (item.flipH) onion.setDirection(-1); 
-			this.controller.addEntity(onion);
-			break;
+		case 128: this._addEntity(Onion, item); break;
+		case 129: this._addEntity(Stump, item); break;
 	}
 };
 
@@ -157,7 +166,10 @@ Level.prototype.setBobPositionOnSide = function (bob, direction) {
 Level.prototype.getTileAt = function (x, y) {
 	x = ~~(x / TILE_WIDTH);
 	y = ~~(y / TILE_HEIGHT);
-	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return EMPTY;
+	// clamp position in level bondaries
+	if (x < 0) x = 0; else if (x >= this.width)  x = this.width  - 1;
+	if (y < 0) y = 0; else if (y >= this.height) y = this.height - 1;
+	// if (x < 0 || y < 0 || x >= this.width || y >= this.height) return EMPTY;
 	return this.grid[x][y];
 };
 

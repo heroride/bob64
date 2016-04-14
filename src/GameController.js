@@ -1,17 +1,8 @@
 var level          = require('./Level.js');
 var bob            = require('./Bob.js');
 var TextDisplay    = require('./TextDisplay.js');
-var Entity         = require('./Entity.js');
+var Entity         = require('./entities/Entity.js');
 var FadeTransition = require('./FadeTransition.js');
-
-// cutscenes
-var bossIntro      = require('./cutscenes/bossIntro.js');
-var cloudFairy     = require('./cutscenes/cloudFairy.js');
-var bossFirstFairy = require('./cutscenes/bossFirstFairy.js');
-var waterFairy     = require('./cutscenes/waterFairy.js');
-var bossSecondFairy= require('./cutscenes/bossSecondFairy.js');
-var fireFairy      = require('./cutscenes/fireFairy.js');
-var bossLastFairy  = require('./cutscenes/bossLastFairy.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -84,8 +75,8 @@ GameController.prototype.startFade = function () {
 	isLocked = fader;
 	var self = this;
 	fader.start(null, function () {
-		self.loadLevel(nextLevel, nextDoor, nextSide);
 		isLocked = null;
+		self.loadLevel(nextLevel, nextDoor, nextSide);
 	});
 };
 
@@ -128,16 +119,14 @@ GameController.prototype.killBob = function (params) {
 	var self = this;
 	isLocked = fader;
 	fader.start(null, function () {
+		isLocked = null;
 		self.restoreState();
-		isLocked = false;
 	});
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 GameController.prototype.update = function () {
 	if (isLocked) return isLocked.update();
-
-	if (btnp.B) return this.startCutScene(bossFirstFairy()); // FIXME just for testing
 
 	bob.update();
 
