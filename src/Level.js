@@ -47,6 +47,9 @@ function Level() {
 	this.doors  = [null, null, null];
 
 	this.background  = new Texture();
+	this.animatedBackgrounds = [];
+	this.isAnimated = false;
+	this.frame = 0;
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -108,6 +111,8 @@ Level.prototype._addEntityFromMapItem = function (item) {
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype._initBackground = function (def) {
+	this.isAnimated = false;
+	this.animatedBackgrounds = [];
 	var texture = this.background;
 	var mapId = def.background;
 	var map = getMap(mapId);
@@ -120,6 +125,26 @@ Level.prototype._initBackground = function (def) {
 		texture.draw(layer);
 		layerId++;
 		layer = getMap(mapId + '_L' + layerId);
+	}
+
+	var animatedlayer = getMap(mapId + '_A');
+	if (animatedlayer) {
+		this.isAnimated = true;
+		// copy 16 times the background texture and add animations
+		for (var i = 0; i < 16; i++) {
+			var animTexture = new Texture(map.width * TILE_WIDTH, map.height * TILE_HEIGHT);
+			this.animatedBackgrounds.push(animTexture);
+			animTexture.draw(texture);
+			animTexture.setSpritesheet(assets.terrain.ANIMATED);
+			for (var x = 0; x < animatedlayer.width;  x++) {
+			for (var y = 0; y < animatedlayer.height; y++) {
+				var item = animatedlayer.items[x][y];
+				if (!item) continue;
+				var s = item.sprite;
+				s = ~~(s / 16) * 16 + (s + i) % 16;
+				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.fliV, item.flipR);
+			}}
+		}
 	}
 };
 
@@ -176,6 +201,12 @@ Level.prototype.getTileAt = function (x, y) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype.draw = function () {
 	// TODO background animations
+	if (this.isAnimated) {
+		this.frame += 0.25;
+		if (this.frame >= 16) this.frame = 0;
+		draw(this.animatedBackgrounds[~~this.frame]);
+		return;
+	}
 	draw(this.background);
 }
 

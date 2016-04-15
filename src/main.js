@@ -90,6 +90,14 @@ if (DEBUG) {
 	window.controller = gameController;
 	window.bob        = gameController.bob;
 	window.level      = gameController.level;
+
+	// load cutscene from console
+	window.cutscene = function (id) {
+		var cutscene = CUTSCENES_ANIMATIONS[id];
+		if (!cutscene) return console.error('cutscene does not exist');
+		gameController.startCutScene(cutscene());
+	}
+
 	// load level from console
 	window.loadLevel = function (id) {
 		// let's try to create the level if it does't exist
