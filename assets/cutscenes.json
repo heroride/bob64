@@ -1,3 +1,4 @@
 [
+	{ "level": "ground0", "cutsceneId": "waterFairy" },
 	{ "level": "cave", "cutsceneId": "cloudFairy" }
 ]
