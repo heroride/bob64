@@ -53,13 +53,10 @@ for (var i = 0; i < doors.length; i++) {
 // PREPARE CUTSCENES
 
 var CUTSCENES_ANIMATIONS = {
-	bossIntro:       require('./cutscenes/bossIntro.js'),
-	cloudFairy:      require('./cutscenes/cloudFairy.js'),
-	bossFirstFairy:  require('./cutscenes/bossFirstFairy.js'),
-	waterFairy:      require('./cutscenes/waterFairy.js'),
-	bossSecondFairy: require('./cutscenes/bossSecondFairy.js'),
-	fireFairy:       require('./cutscenes/fireFairy.js'),
-	bossLastFairy:   require('./cutscenes/bossLastFairy.js')
+	intro:       require('./cutscenes/intro.js'),
+	cloudFairy:  require('./cutscenes/cloudFairy.js'),
+	waterFairy:  require('./cutscenes/waterFairy.js'),
+	fireFairy:   require('./cutscenes/fireFairy.js')
 };
 
 var cutscenes = assets.cutscenes;
@@ -104,7 +101,7 @@ if (DEBUG) {
 		if (!assets.levels[id]) createDefaultLevel(id);
 		gameController.loadLevel(id);
 		gameController.saveState();
-	}
+	};
 
 	// hack Bob abilities
 	var bob = require('./Bob.js');
