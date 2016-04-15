@@ -53,13 +53,10 @@ for (var i = 0; i < doors.length; i++) {
 // PREPARE CUTSCENES
 
 var CUTSCENES_ANIMATIONS = {
-	bossIntro:       require('./cutscenes/bossIntro.js'),
+	intro:       require('./cutscenes/intro.js'),
 	cloudFairy:      require('./cutscenes/cloudFairy.js'),
-	bossFirstFairy:  require('./cutscenes/bossFirstFairy.js'),
 	waterFairy:      require('./cutscenes/waterFairy.js'),
-	bossSecondFairy: require('./cutscenes/bossSecondFairy.js'),
-	fireFairy:       require('./cutscenes/fireFairy.js'),
-	bossLastFairy:   require('./cutscenes/bossLastFairy.js')
+	fireFairy:       require('./cutscenes/fireFairy.js')
 };
 
 var cutscenes = assets.cutscenes;
@@ -87,16 +84,24 @@ gameController.loadLevel('ground0');
 // DEBUGGING FUNCTIONS 
 
 if (DEBUG) {
-	window.controller = gameController;
-	window.bob        = gameController.bob;
-	window.level      = gameController.level;
+	window.cutscenes = CUTSCENES_ANIMATIONS;
+	window.controller    = gameController;
+	window.bob           = gameController.bob;
+	window.level         = gameController.level;
+
+	window.cutscene = function(id){
+		var cutscene = CUTSCENES_ANIMATIONS[id];
+		if(!cutscene) return console.error("cutscene does not exist");
+		gameController.startCutScene(cutscene());
+	};
+
 	// load level from console
 	window.loadLevel = function (id) {
 		// let's try to create the level if it does't exist
 		if (!assets.levels[id]) createDefaultLevel(id);
 		gameController.loadLevel(id);
 		gameController.saveState();
-	}
+	};
 
 	// hack Bob abilities
 	var bob = require('./Bob.js');
