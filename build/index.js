@@ -7432,10 +7432,11 @@ Level.prototype.load = function (id) {
 	this.id = id;
 
 	var def = assets.levels[id];
-	if (!def) return console.error('Level does not exist', id);
+	if (!def) return console.error('Level definition does not exist for level ' + id);
 	paper(def.bgcolor);
 
 	var map = getMap(def.geometry);
+	if (!map) return console.error('Level does not exist: ' + id);
 	var bobPosition = map.find(255)[0];
 
 	if (bobPosition) {
@@ -7517,7 +7518,7 @@ Level.prototype._initBackground = function (def) {
 				if (!item) continue;
 				var s = item.sprite;
 				s = ~~(s / 16) * 16 + (s + i) % 16;
-				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.fliV, item.flipR);
+				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.flipV, item.flipR);
 			}}
 		}
 	}
@@ -8718,11 +8719,12 @@ var DEBUG = true;
 // PREPARE LEVELS
 
 function createDefaultLevel(id, error) {
+	error = error || '';
 	// TODO check map existance
 	var geometryId = id + "_geo";
 	var background = id;
 	var bgcolor = 0;
-	if (!getMap(geometryId)) return console.error('No geometry found for level', id);
+	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level', id);
 	if (!getMap(background)) { background = geometryId; bgcolor = 10; }
 	// if only geo exist, create a default for rendering
 	var level = { "name": "", "background": background, "geometry": geometryId, "bgcolor": bgcolor, "doors": ["", "", ""] };

@@ -57,10 +57,11 @@ Level.prototype.load = function (id) {
 	this.id = id;
 
 	var def = assets.levels[id];
-	if (!def) return console.error('Level does not exist', id);
+	if (!def) return console.error('Level definition does not exist for level ' + id);
 	paper(def.bgcolor);
 
 	var map = getMap(def.geometry);
+	if (!map) return console.error('Level does not exist: ' + id);
 	var bobPosition = map.find(255)[0];
 
 	if (bobPosition) {
@@ -142,7 +143,7 @@ Level.prototype._initBackground = function (def) {
 				if (!item) continue;
 				var s = item.sprite;
 				s = ~~(s / 16) * 16 + (s + i) % 16;
-				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.fliV, item.flipR);
+				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.flipV, item.flipR);
 			}}
 		}
 	}
