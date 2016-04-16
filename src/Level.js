@@ -1,5 +1,6 @@
-var Onion = require('./entities/Onion.js');
-var Stump = require('./entities/Stump.js');
+var Onion         = require('./entities/Onion.js');
+var Stump         = require('./entities/Stump.js');
+var SingletonItem = require('./entities/SingletonItem.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -37,6 +38,13 @@ function getTileFromMapItem(mapItem) {
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+var ON_LIFE_CONTAINER_PICKUP = function (item, bob) {
+	bob.maxLifePoints += 1;
+	bob.lifePoints = bob.maxLifePoints;
+};
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Level() {
 	this.id     = null;
 	this.map    = null;
@@ -57,10 +65,11 @@ Level.prototype.load = function (id) {
 	this.id = id;
 
 	var def = assets.levels[id];
-	if (!def) return console.error('Level does not exist', id);
+	if (!def) return console.error('Level definition does not exist for level ' + id);
 	paper(def.bgcolor);
 
 	var map = getMap(def.geometry);
+	if (!map) return console.error('Level does not exist: ' + id);
 	var bobPosition = map.find(255)[0];
 
 	if (bobPosition) {
@@ -106,6 +115,12 @@ Level.prototype._addEntityFromMapItem = function (item) {
 	switch (item.sprite) {
 		case 128: this._addEntity(Onion, item); break;
 		case 129: this._addEntity(Stump, item); break;
+		case 192:
+			// life container
+			var entity = new SingletonItem(194, this.map, item, ON_LIFE_CONTAINER_PICKUP);
+			entity.setPosition(item.x * TILE_WIDTH, item.y * TILE_HEIGHT);
+			this.controller.addEntity(entity);
+			break;
 	}
 };
 
@@ -142,7 +157,7 @@ Level.prototype._initBackground = function (def) {
 				if (!item) continue;
 				var s = item.sprite;
 				s = ~~(s / 16) * 16 + (s + i) % 16;
-				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.fliV, item.flipR);
+				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.flipV, item.flipR);
 			}}
 		}
 	}
