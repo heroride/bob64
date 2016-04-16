@@ -133,7 +133,7 @@ GameController.prototype.startCutScene = function (cutscene) {
 GameController.prototype.killBob = function (params) {
 	var self = this;
 	isLocked = fader;
-	fader.start(null, function () {
+	fader.start({ img: assets.ditherFonduRed }, function () {
 		isLocked = null;
 		self.restoreState();
 	});

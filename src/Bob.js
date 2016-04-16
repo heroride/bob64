@@ -52,6 +52,8 @@ function Bob() {
 
 	// state
 	this.resetState();
+	this.maxLifePoints = 3;
+	this.lifePoints    = 3;
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -81,7 +83,7 @@ Bob.prototype.saveState = function () {
 		y:             this.y,
 		canAttack:     this.canAttack,
 		canDive:       this.canDive,
-		canDoubleJump: this.canDoubleJump
+		canDoubleJump: this.canDoubleJump,
 	};
 };
 
@@ -96,6 +98,7 @@ Bob.prototype.restoreState = function (state) {
 	this.canDive       = state.canDive;
 	this.canDoubleJump = state.canDoubleJump;
 
+	this.lifePoints    = this.maxLifePoints;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -246,6 +249,7 @@ Bob.prototype.update = function () {
 	if (this.isHit) {
 		this.hitCounter++;
 		if (this.hitCounter > 16) {
+			if (this.lifePoints <= 0) this.kill(true);
 			this.isLocked = false;
 		}
 		// keep Bob not attackable for few more frames
@@ -382,6 +386,13 @@ Bob.prototype.draw = function () {
 		}
 		sprite(s, this.x, this.y, this.flipH);
 	}
+
+	// draw HUD
+	camera(0, 0);
+	for (var i = 0; i < this.maxLifePoints; i++) {
+		var s = this.lifePoints > i ? 192 : 193;
+		sprite(s, i * 6, 0);
+	}
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -395,6 +406,8 @@ Bob.prototype.hit = function (attacker) {
 
 	this.sx = attacker.x < this.x ? 1.6 : -1.6;
 	this.sy = attacker.y < this.y ? 2 : -3;
+
+	this.lifePoints -= 1;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄

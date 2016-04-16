@@ -1,5 +1,6 @@
-var Onion = require('./entities/Onion.js');
-var Stump = require('./entities/Stump.js');
+var Onion         = require('./entities/Onion.js');
+var Stump         = require('./entities/Stump.js');
+var SingletonItem = require('./entities/SingletonItem.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -35,6 +36,13 @@ function getTileFromMapItem(mapItem) {
 		default: return EMPTY;
 	}
 }
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+var ON_LIFE_CONTAINER_PICKUP = function (item, bob) {
+	bob.maxLifePoints += 1;
+	bob.lifePoints = bob.maxLifePoints;
+};
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Level() {
@@ -107,6 +115,12 @@ Level.prototype._addEntityFromMapItem = function (item) {
 	switch (item.sprite) {
 		case 128: this._addEntity(Onion, item); break;
 		case 129: this._addEntity(Stump, item); break;
+		case 192:
+			// life container
+			var entity = new SingletonItem(194, this.map, item, ON_LIFE_CONTAINER_PICKUP);
+			entity.setPosition(item.x * TILE_WIDTH, item.y * TILE_HEIGHT);
+			this.controller.addEntity(entity);
+			break;
 	}
 };
 
