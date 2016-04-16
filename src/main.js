@@ -4,11 +4,12 @@ var DEBUG = true;
 // PREPARE LEVELS
 
 function createDefaultLevel(id, error) {
+	error = error || '';
 	// TODO check map existance
 	var geometryId = id + "_geo";
 	var background = id;
 	var bgcolor = 0;
-	if (!getMap(geometryId)) return console.error('No geometry found for level', id);
+	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level', id);
 	if (!getMap(background)) { background = geometryId; bgcolor = 10; }
 	// if only geo exist, create a default for rendering
 	var level = { "name": "", "background": background, "geometry": geometryId, "bgcolor": bgcolor, "doors": ["", "", ""] };
@@ -78,7 +79,7 @@ for (var i = 0; i < cutscenes.length; i++) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 var gameController = require('./GameController.js');
 
-gameController.loadLevel('ground0');
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // DEBUGGING FUNCTIONS 
@@ -109,6 +110,11 @@ if (DEBUG) {
 	bob.canDoubleJump = true;
 	bob.canAttack     = true;
 }
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// START GAME
+gameController.loadLevel('inside');
+gameController.saveState();
 
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄

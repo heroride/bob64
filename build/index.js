@@ -5414,7 +5414,7 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":58}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":59}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
 
@@ -5797,7 +5797,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":58}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":59}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -6553,7 +6553,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":54,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":55,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -6698,6 +6698,8 @@ function Bob() {
 
 	// state
 	this.resetState();
+	this.maxLifePoints = 3;
+	this.lifePoints    = 3;
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6727,7 +6729,7 @@ Bob.prototype.saveState = function () {
 		y:             this.y,
 		canAttack:     this.canAttack,
 		canDive:       this.canDive,
-		canDoubleJump: this.canDoubleJump
+		canDoubleJump: this.canDoubleJump,
 	};
 };
 
@@ -6742,6 +6744,7 @@ Bob.prototype.restoreState = function (state) {
 	this.canDive       = state.canDive;
 	this.canDoubleJump = state.canDoubleJump;
 
+	this.lifePoints    = this.maxLifePoints;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -6892,6 +6895,7 @@ Bob.prototype.update = function () {
 	if (this.isHit) {
 		this.hitCounter++;
 		if (this.hitCounter > 16) {
+			if (this.lifePoints <= 0) this.kill(true);
 			this.isLocked = false;
 		}
 		// keep Bob not attackable for few more frames
@@ -7028,6 +7032,13 @@ Bob.prototype.draw = function () {
 		}
 		sprite(s, this.x, this.y, this.flipH);
 	}
+
+	// draw HUD
+	camera(0, 0);
+	for (var i = 0; i < this.maxLifePoints; i++) {
+		var s = this.lifePoints > i ? 192 : 193;
+		sprite(s, i * 6, 0);
+	}
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7041,6 +7052,8 @@ Bob.prototype.hit = function (attacker) {
 
 	this.sx = attacker.x < this.x ? 1.6 : -1.6;
 	this.sy = attacker.y < this.y ? 2 : -3;
+
+	this.lifePoints -= 1;
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -7183,6 +7196,7 @@ var TILE_HEIGHT = settings.spriteSize[1];
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function FadeTransition() {
 	this.transitionCount  = 0;
+	this.img = assets.ditherFondu;
 	this.onFinishCallback = null;
 }
 
@@ -7190,6 +7204,8 @@ module.exports = FadeTransition;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 FadeTransition.prototype.start = function (options, cb) {
+	options = options || {};
+	this.img = options.img || assets.ditherFondu;
 	this.onFinishCallback = cb;
 	this.transitionCount = -30;
 	return this;
@@ -7199,7 +7215,7 @@ FadeTransition.prototype.start = function (options, cb) {
 /** return true if it continues and false when ended */
 FadeTransition.prototype.update = function () {
 	camera(0, 0);
-	draw(assets.ditherFondu, 0, this.transitionCount * TILE_HEIGHT);
+	draw(this.img, 0, this.transitionCount * TILE_HEIGHT);
 	if (++this.transitionCount > 0) {
 		// this.loadLevel(nextLevel, nextDoor, nextSide);
 		this.onFinishCallback && this.onFinishCallback();
@@ -7345,7 +7361,7 @@ GameController.prototype.startCutScene = function (cutscene) {
 GameController.prototype.killBob = function (params) {
 	var self = this;
 	isLocked = fader;
-	fader.start(null, function () {
+	fader.start({ img: assets.ditherFonduRed }, function () {
 		isLocked = null;
 		self.restoreState();
 	});
@@ -7373,8 +7389,9 @@ GameController.prototype.update = function () {
 };
 
 },{"./Bob.js":39,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":44,"./entities/Entity.js":49,"./entities/ShortAnimation.js":51}],43:[function(require,module,exports){
-var Onion = require('./entities/Onion.js');
-var Stump = require('./entities/Stump.js');
+var Onion         = require('./entities/Onion.js');
+var Stump         = require('./entities/Stump.js');
+var SingletonItem = require('./entities/SingletonItem.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -7412,6 +7429,13 @@ function getTileFromMapItem(mapItem) {
 }
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+var ON_LIFE_CONTAINER_PICKUP = function (item, bob) {
+	bob.maxLifePoints += 1;
+	bob.lifePoints = bob.maxLifePoints;
+};
+
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Level() {
 	this.id     = null;
 	this.map    = null;
@@ -7432,10 +7456,11 @@ Level.prototype.load = function (id) {
 	this.id = id;
 
 	var def = assets.levels[id];
-	if (!def) return console.error('Level does not exist', id);
+	if (!def) return console.error('Level definition does not exist for level ' + id);
 	paper(def.bgcolor);
 
 	var map = getMap(def.geometry);
+	if (!map) return console.error('Level does not exist: ' + id);
 	var bobPosition = map.find(255)[0];
 
 	if (bobPosition) {
@@ -7481,6 +7506,12 @@ Level.prototype._addEntityFromMapItem = function (item) {
 	switch (item.sprite) {
 		case 128: this._addEntity(Onion, item); break;
 		case 129: this._addEntity(Stump, item); break;
+		case 192:
+			// life container
+			var entity = new SingletonItem(194, this.map, item, ON_LIFE_CONTAINER_PICKUP);
+			entity.setPosition(item.x * TILE_WIDTH, item.y * TILE_HEIGHT);
+			this.controller.addEntity(entity);
+			break;
 	}
 };
 
@@ -7517,7 +7548,7 @@ Level.prototype._initBackground = function (def) {
 				if (!item) continue;
 				var s = item.sprite;
 				s = ~~(s / 16) * 16 + (s + i) % 16;
-				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.fliV, item.flipR);
+				animTexture.sprite(s, x * TILE_WIDTH, y * TILE_HEIGHT, item.flipH, item.flipV, item.flipR);
 			}}
 		}
 	}
@@ -7586,7 +7617,7 @@ Level.prototype.draw = function () {
 }
 
 module.exports = new Level();
-},{"./entities/Onion.js":50,"./entities/Stump.js":53}],44:[function(require,module,exports){
+},{"./entities/Onion.js":50,"./entities/SingletonItem.js":52,"./entities/Stump.js":54}],44:[function(require,module,exports){
 TextDisplay = function () {
 	this.textWindow = new Texture(64, 19);
 	this.textBuffer = '';
@@ -8493,6 +8524,55 @@ var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+/** an item tied to a tile that should disapear from the whole game once removed
+ *  e.g. life container, boss door
+ */
+function SingletonItem(sprite, map, mapItem, onBobCollide) {
+	Entity.call(this);
+
+	this.width        = 8;
+	this.height       = 8;
+
+	this.isAttackable = false;
+
+	this.sprite       = sprite;
+	this.map          = map;
+	this.mapItem      = mapItem;
+	this.onBobCollide = onBobCollide;
+}
+inherits(SingletonItem, Entity);
+
+module.exports = SingletonItem;
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+/* return true if entity needs to check collision with level */
+SingletonItem.prototype.move = function (level, bob) {
+	if (!bob.locked && AABBcollision(this, bob)) {
+		// collision with bob
+		this.onBobCollide && this.onBobCollide(this, bob);
+		this.map.remove(this.mapItem.x, this.mapItem.y);
+		this.controller.removeEntity(this);
+	}
+	return false;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+SingletonItem.prototype.animate = function () {
+	// draw item
+	sprite(this.sprite, this.x, this.y);
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+SingletonItem.prototype.setPosition = function (x ,y) {
+	this.x = x;
+	this.y = y;
+	return this;
+};
+},{"../AABBcollision.js":37,"./Entity.js":49}],53:[function(require,module,exports){
+var Entity        = require('./Entity.js');
+var AABBcollision = require('../AABBcollision.js');
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Spit() {
 	Entity.call(this);
 
@@ -8552,7 +8632,7 @@ Spit.prototype.setPosition = function (x ,y) {
 	this.y = y;
 	return this;
 };
-},{"../AABBcollision.js":37,"./Entity.js":49}],53:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":49}],54:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var Spit          = require('./Spit.js');
 var AABBcollision = require('../AABBcollision.js');
@@ -8711,18 +8791,19 @@ Stump.prototype.spit = function () {
 	spit.setDirection(this.direction).setPosition(this.x, this.y + 3);
 	this.controller.addEntity(spit);
 };
-},{"../AABBcollision.js":37,"./Entity.js":49,"./Spit.js":52}],54:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":49,"./Spit.js":53}],55:[function(require,module,exports){
 var DEBUG = true;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // PREPARE LEVELS
 
 function createDefaultLevel(id, error) {
+	error = error || '';
 	// TODO check map existance
 	var geometryId = id + "_geo";
 	var background = id;
 	var bgcolor = 0;
-	if (!getMap(geometryId)) return console.error('No geometry found for level', id);
+	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level', id);
 	if (!getMap(background)) { background = geometryId; bgcolor = 10; }
 	// if only geo exist, create a default for rendering
 	var level = { "name": "", "background": background, "geometry": geometryId, "bgcolor": bgcolor, "doors": ["", "", ""] };
@@ -8792,7 +8873,7 @@ for (var i = 0; i < cutscenes.length; i++) {
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 var gameController = require('./GameController.js');
 
-gameController.loadLevel('ground0');
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // DEBUGGING FUNCTIONS 
@@ -8824,6 +8905,11 @@ if (DEBUG) {
 	bob.canAttack     = true;
 }
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// START GAME
+gameController.loadLevel('inside');
+gameController.saveState();
+
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 // Update is called once per frame
@@ -8831,7 +8917,7 @@ exports.update = function () {
 	gameController.update();
 };
 
-},{"./Bob.js":39,"./GameController.js":42,"./cutscenes/cloudFairy.js":45,"./cutscenes/fireFairy.js":46,"./cutscenes/intro.js":47,"./cutscenes/waterFairy.js":48}],55:[function(require,module,exports){
+},{"./Bob.js":39,"./GameController.js":42,"./cutscenes/cloudFairy.js":45,"./cutscenes/fireFairy.js":46,"./cutscenes/intro.js":47,"./cutscenes/waterFairy.js":48}],56:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -8856,7 +8942,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],56:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -8949,14 +9035,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -9546,4 +9632,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":57,"_process":56,"inherits":55}]},{},[35]);
+},{"./support/isBuffer":58,"_process":57,"inherits":56}]},{},[35]);
