@@ -1,5 +1,6 @@
-var level = require('./Level.js');
-var AABBcollision = require('./AABBcollision.js');
+var level          = require('./Level.js');
+var ShortAnimation = require('./entities/ShortAnimation.js');
+var AABBcollision  = require('./AABBcollision.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
@@ -28,6 +29,8 @@ var CHAINSAW_SLASH_BBOXES_LEFT = [
 	{ x: -10, y:   3, w: 8, h: 5 },
 	{ x:  -8, y:   3, w: 7, h: 5 }
 ];
+
+var DOUBLE_JUMP_CLOUD_ANIM = [74, 75, 76, 77, 78, 79];
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Bob() {
@@ -146,7 +149,10 @@ Bob.prototype.startJump = function () {
 		return;
 	}
 	if (!this.grounded) {
-		if (this.canDoubleJump && !this.doubleJumpUsed) this.doubleJumpUsed = true;
+		if (this.canDoubleJump && !this.doubleJumpUsed) {
+			this.doubleJumpUsed = true;
+			this.controller.addAnimation(new ShortAnimation(DOUBLE_JUMP_CLOUD_ANIM, 0.4).setPosition(this.x, this.y));
+		}
 		else if (!this.inWater) return; // allow bob to jump from water
 	}
 	// if there is a ceiling directly on top of Bob's head, cancel jump.
