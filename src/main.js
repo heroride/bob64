@@ -56,7 +56,9 @@ var CUTSCENES_ANIMATIONS = {
 	intro:       require('./cutscenes/intro.js'),
 	cloudFairy:  require('./cutscenes/cloudFairy.js'),
 	waterFairy:  require('./cutscenes/waterFairy.js'),
-	fireFairy:   require('./cutscenes/fireFairy.js')
+	fireFairy:   require('./cutscenes/fireFairy.js'),
+	beforeLastBattle:  require('./cutscenes/beforeLastBattle.js'),
+	afterLastBattle:   require('./cutscenes/afterLastBattle.js')
 };
 
 var cutscenes = assets.cutscenes;
