@@ -9,7 +9,7 @@ function createDefaultLevel(id, error) {
 	var geometryId = id + "_geo";
 	var background = id;
 	var bgcolor = 0;
-	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level', id);
+	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level ' + id);
 	if (!getMap(background)) { background = geometryId; bgcolor = 10; }
 	// if only geo exist, create a default for rendering
 	var level = { "name": "", "background": background, "geometry": geometryId, "bgcolor": bgcolor, "doors": ["", "", ""] };
@@ -92,7 +92,7 @@ if (DEBUG) {
 	// load cutscene from console
 	window.cutscene = function (id) {
 		var cutscene = CUTSCENES_ANIMATIONS[id];
-		if (!cutscene) return console.error('cutscene does not exist');
+		if (!cutscene) return console.error('cutscene does not exist: ' + id);
 		gameController.startCutScene(cutscene());
 	}
 

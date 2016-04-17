@@ -5414,7 +5414,7 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":59}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":61}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
 
@@ -5797,7 +5797,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":59}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":61}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -6553,7 +6553,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":55,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":56,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -6695,6 +6695,10 @@ function Bob() {
 	this.canAttack     = false;
 	this.canDive       = false;
 	this.canDoubleJump = false;
+
+	this.hasCloudFairy = false;
+	this.hasWaterFairy = false;
+	this.hasFireFairy  = false;
 
 	// state
 	this.resetState();
@@ -7064,7 +7068,7 @@ Bob.prototype.kill = function (params) {
 
 module.exports = new Bob();
 
-},{"./AABBcollision.js":37,"./Level.js":43,"./entities/ShortAnimation.js":51}],40:[function(require,module,exports){
+},{"./AABBcollision.js":37,"./Level.js":43,"./entities/ShortAnimation.js":52}],40:[function(require,module,exports){
 var TextDisplay    = require('./TextDisplay.js');
 var FadeTransition = require('./FadeTransition.js');
 
@@ -7388,52 +7392,21 @@ GameController.prototype.update = function () {
 	bob.draw();
 };
 
-},{"./Bob.js":39,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":44,"./entities/Entity.js":49,"./entities/ShortAnimation.js":51}],43:[function(require,module,exports){
+},{"./Bob.js":39,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":44,"./entities/Entity.js":50,"./entities/ShortAnimation.js":52}],43:[function(require,module,exports){
+var tiles         = require('./tiles.js');
 var Onion         = require('./entities/Onion.js');
 var Stump         = require('./entities/Stump.js');
 var SingletonItem = require('./entities/SingletonItem.js');
+var Bloc          = require('./entities/Bloc.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
 var TILE_HEIGHT = settings.spriteSize[1];
-
-var EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0 };
-var SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true,  isWater: 0 };
-var ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, canJumpThru: true };
-var VINE    = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isVine: true };
-var VINETOP = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, isVine: true, canJumpThru: true };
-var DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 0 };
-var DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 1 };
-var DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 2 };
-var WATER   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 1 };
-var WATER_S = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 2 };
-var KILL    = { isEmpty: true,  isSolid: false, isTopSolid: false, kill: true };
-var ENLIMIT = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isEntityLimit: true };
-
-
-function getTileFromMapItem(mapItem) {
-	if (!mapItem) return EMPTY;
-	switch (mapItem.sprite) {
-		case 0:  return SOLID;
-		case 1:  return ONE_WAY;
-		case 2:  return VINE;
-		case 3:  return VINETOP;
-		case 4:  return DOOR_0;
-		case 5:  return DOOR_1;
-		case 6:  return DOOR_2;
-		case 7:  return WATER;
-		case 8:  return WATER_S;
-		case 9:  return KILL;
-		case 32: return ENLIMIT;
-		default: return EMPTY;
-	}
-}
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 var ON_LIFE_CONTAINER_PICKUP = function (item, bob) {
 	bob.maxLifePoints += 1;
 	bob.lifePoints = bob.maxLifePoints;
 };
-
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 function Level() {
@@ -7482,7 +7455,7 @@ Level.prototype.load = function (id) {
 	for (var x = 0; x < map.width;  x++) {
 	for (var y = 0; y < map.height; y++) {
 		var item = map.items[x][y];
-		this.grid[x][y] = getTileFromMapItem(item);
+		this.grid[x][y] = tiles.getTileFromMapItem(item);
 		this._addEntityFromMapItem(item);
 	}}
 
@@ -7501,13 +7474,26 @@ Level.prototype._addEntity = function (entityClass, item) {
 	this.controller.addEntity(entity);
 };
 
+Level.prototype._createDestroyableBloc = function (item) {
+	// add solid bloc in logic grid
+	this.grid[item.x][item.y] = tiles.SOLID;
+	// create and add entity
+	var bloc = new Bloc(this, item);
+	this.controller.addEntity(bloc);
+};
+
 Level.prototype._addEntityFromMapItem = function (item) {
 	if (!item || item.sprite < 128) return;
 	switch (item.sprite) {
 		case 128: this._addEntity(Onion, item); break;
 		case 129: this._addEntity(Stump, item); break;
-		case 192:
-			// life container
+		case 160: // cloud bloc
+		case 161: // water bloc
+		case 162: // fire block
+		case 163: // simple bloc
+			this._createDestroyableBloc(item);
+			break;
+		case 192: // life container
 			var entity = new SingletonItem(194, this.map, item, ON_LIFE_CONTAINER_PICKUP);
 			entity.setPosition(item.x * TILE_WIDTH, item.y * TILE_HEIGHT);
 			this.controller.addEntity(entity);
@@ -7605,6 +7591,20 @@ Level.prototype.getTileAt = function (x, y) {
 };
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Level.prototype.removeTile = function (x, y) {
+	// remove from logic
+	this.grid[x][y] = tiles.EMPTY;
+
+	// remove from rendering
+	/*this.background.ctx.clearRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+	if (this.isAnimated) {
+		for (var i = 0; i < this.animatedBackgrounds.length; i++) {
+			this.animatedBackgrounds[i].ctx.clearRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+		}
+	}*/
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 Level.prototype.draw = function () {
 	// TODO background animations
 	if (this.isAnimated) {
@@ -7617,7 +7617,7 @@ Level.prototype.draw = function () {
 }
 
 module.exports = new Level();
-},{"./entities/Onion.js":50,"./entities/SingletonItem.js":52,"./entities/Stump.js":54}],44:[function(require,module,exports){
+},{"./entities/Bloc.js":49,"./entities/Onion.js":51,"./entities/SingletonItem.js":53,"./entities/Stump.js":55,"./tiles.js":57}],44:[function(require,module,exports){
 TextDisplay = function () {
 	this.textWindow = new Texture(64, 19);
 	this.textBuffer = '';
@@ -8172,6 +8172,80 @@ function waterFairy() {
 module.exports = waterFairy;
 
 },{"../AnimatedSprite.js":38,"../CutScene.js":40}],49:[function(require,module,exports){
+var Entity         = require('./Entity.js');
+var AABBcollision  = require('../AABBcollision.js');
+var tiles          = require('../tiles.js');
+var ShortAnimation = require('./ShortAnimation.js');
+
+var TILE_WIDTH  = settings.spriteSize[0];
+var TILE_HEIGHT = settings.spriteSize[1];
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+/** an item tied to a tile that should disapear from the whole game once removed
+ *  e.g. life container, boss door
+ */
+function Bloc(level, mapItem, onDestroyCallback) {
+	Entity.call(this);
+
+	this.width        = 8;
+	this.height       = 8;
+	this.isAttackable = true;
+
+	this.level        = level;
+	this.mapItem      = mapItem;
+	this.onDestroy    = onDestroyCallback;
+
+	this.x = mapItem.x * TILE_WIDTH;
+	this.y = mapItem.y * TILE_HEIGHT;
+
+	this.init(mapItem);
+}
+inherits(Bloc, Entity);
+module.exports = Bloc;
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bloc.prototype.init = function (mapItem) {
+	this.sprite = mapItem.sprite;
+
+	// bob requirements
+	this.needCloudFairy = false;
+	this.needWaterFairy = false;
+	this.needFireFairy  = false;
+
+	switch (mapItem.sprite) {
+		case 160: this.needCloudFairy = true; break;
+		case 161: this.needWaterFairy = true; break;
+		case 162: this.needFireFairy  = true; break;
+	}
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+/** return true if entity needs to check collision with level */
+Bloc.prototype.move = function (level, bob) {
+	return false;
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+Bloc.prototype.hit = function (bob) {
+	// TODO check Bob's attibute
+	if (this.needCloudFairy && !bob.hasCloudFairy) return;
+	if (this.needWaterFairy && !bob.hasWaterFairy) return;
+	if (this.needFireFairy  && !bob.hasFireFairy)  return;
+
+	// destroy bloc
+	var item = this.mapItem;
+	this.level.removeTile(item.x, item.y);
+	this.explode();
+	this.onDestroy && this.onDestroy();
+};
+
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+/** draw item */
+Bloc.prototype.animate = function () {
+	sprite(this.sprite, this.x, this.y);
+};
+
+},{"../AABBcollision.js":37,"../tiles.js":57,"./Entity.js":50,"./ShortAnimation.js":52}],50:[function(require,module,exports){
 var ShortAnimation = require('./ShortAnimation.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -8328,7 +8402,7 @@ Entity.prototype.levelCollisions = function (level, bob) {
 	this.y = y;
 };
 
-},{"./ShortAnimation.js":51}],50:[function(require,module,exports){
+},{"./ShortAnimation.js":52}],51:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
@@ -8478,7 +8552,7 @@ Onion.prototype.hit = function (attacker) {
 	this.sy = -2;
 };
 
-},{"../AABBcollision.js":37,"./Entity.js":49}],51:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":50}],52:[function(require,module,exports){
 function ShortAnimation(animation, animSpeed) {
 	this.x = 0;
 	this.y = 0;
@@ -8519,7 +8593,7 @@ ShortAnimation.prototype.setPosition = function (x, y) {
 	this.y = y;
 	return this;
 };
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
@@ -8568,7 +8642,7 @@ SingletonItem.prototype.setPosition = function (x ,y) {
 	this.y = y;
 	return this;
 };
-},{"../AABBcollision.js":37,"./Entity.js":49}],53:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":50}],54:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
@@ -8632,7 +8706,7 @@ Spit.prototype.setPosition = function (x ,y) {
 	this.y = y;
 	return this;
 };
-},{"../AABBcollision.js":37,"./Entity.js":49}],54:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":50}],55:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var Spit          = require('./Spit.js');
 var AABBcollision = require('../AABBcollision.js');
@@ -8791,7 +8865,7 @@ Stump.prototype.spit = function () {
 	spit.setDirection(this.direction).setPosition(this.x, this.y + 3);
 	this.controller.addEntity(spit);
 };
-},{"../AABBcollision.js":37,"./Entity.js":49,"./Spit.js":53}],55:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":50,"./Spit.js":54}],56:[function(require,module,exports){
 var DEBUG = true;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -8803,7 +8877,7 @@ function createDefaultLevel(id, error) {
 	var geometryId = id + "_geo";
 	var background = id;
 	var bgcolor = 0;
-	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level', id);
+	if (!getMap(geometryId)) return console.error(error + ': No geometry found for level ' + id);
 	if (!getMap(background)) { background = geometryId; bgcolor = 10; }
 	// if only geo exist, create a default for rendering
 	var level = { "name": "", "background": background, "geometry": geometryId, "bgcolor": bgcolor, "doors": ["", "", ""] };
@@ -8886,7 +8960,7 @@ if (DEBUG) {
 	// load cutscene from console
 	window.cutscene = function (id) {
 		var cutscene = CUTSCENES_ANIMATIONS[id];
-		if (!cutscene) return console.error('cutscene does not exist');
+		if (!cutscene) return console.error('cutscene does not exist: ' + id);
 		gameController.startCutScene(cutscene());
 	}
 
@@ -8917,7 +8991,41 @@ exports.update = function () {
 	gameController.update();
 };
 
-},{"./Bob.js":39,"./GameController.js":42,"./cutscenes/cloudFairy.js":45,"./cutscenes/fireFairy.js":46,"./cutscenes/intro.js":47,"./cutscenes/waterFairy.js":48}],56:[function(require,module,exports){
+},{"./Bob.js":39,"./GameController.js":42,"./cutscenes/cloudFairy.js":45,"./cutscenes/fireFairy.js":46,"./cutscenes/intro.js":47,"./cutscenes/waterFairy.js":48}],57:[function(require,module,exports){
+
+var EMPTY   = exports.EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0 };
+var SOLID   = exports.SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true,  isWater: 0 };
+var ONE_WAY = exports.ONE_WAY = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, canJumpThru: true };
+var VINE    = exports.VINE    = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isVine: true };
+var VINETOP = exports.VINETOP = { isEmpty: false, isSolid: false, isTopSolid: true,  isWater: 0, isVine: true, canJumpThru: true };
+var DOOR_0  = exports.DOOR_0  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 0 };
+var DOOR_1  = exports.DOOR_1  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 1 };
+var DOOR_2  = exports.DOOR_2  = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isDoor: true, doorId: 2 };
+var WATER   = exports.WATER   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 1 };
+var WATER_S = exports.WATER_S = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 2 };
+var KILL    = exports.KILL    = { isEmpty: true,  isSolid: false, isTopSolid: false, kill: true };
+var ENLIMIT = exports.ENLIMIT = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0, isEntityLimit: true };
+
+
+exports.getTileFromMapItem = function (mapItem) {
+	if (!mapItem) return EMPTY;
+	switch (mapItem.sprite) {
+		case 0:  return SOLID;
+		case 1:  return ONE_WAY;
+		case 2:  return VINE;
+		case 3:  return VINETOP;
+		case 4:  return DOOR_0;
+		case 5:  return DOOR_1;
+		case 6:  return DOOR_2;
+		case 7:  return WATER;
+		case 8:  return WATER_S;
+		case 9:  return KILL;
+		case 32: return ENLIMIT;
+		default: return EMPTY;
+	}
+};
+
+},{}],58:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -8942,7 +9050,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],57:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -9035,14 +9143,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],58:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],59:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -9632,4 +9740,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":58,"_process":57,"inherits":56}]},{},[35]);
+},{"./support/isBuffer":60,"_process":59,"inherits":58}]},{},[35]);
