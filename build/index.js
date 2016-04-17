@@ -8281,6 +8281,8 @@ function waterFairy(gameController) {
 		if (onionGuy.x < 10) return false; // continue the animation
 		return true; // ends the animation
 	});
+
+	cutscene.addDelay(1);
 	
 	//------------------------------------------------------------
 	cutscene.enqueue(function () {
@@ -8663,7 +8665,7 @@ function Onion() {
 	this.direction = 1;
 	this.isHit       = false;
 	this.hitCounter = 0;
-	this.lifePoints = 3;
+	this.lifePoints = 1;
 
 	// rendering & animation
 	this.flipH     = false;
@@ -8968,7 +8970,7 @@ function Stump() {
 	this.direction  = 1;
 	this.isHit      = false;
 	this.hitCounter = 0;
-	this.lifePoints = 3;
+	this.lifePoints = 2;
 
 	// rendering & animation
 	this.flipH     = false;
@@ -9016,7 +9018,7 @@ Stump.prototype.move = function (level, bob) {
 		this.frame = 0;
 		this.sx = 0;
 		// TODO
-		return true
+		return true;
 	}
 
 	// walking
