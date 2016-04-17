@@ -13,7 +13,7 @@ var STUMP_ANIM = [stump.walk0];
 var expl = assets.entities.explosion;
 var EXPLOSION_ANIMATION = [expl.frame0, expl.frame1, expl.frame2, expl.frame3, expl.frame4, expl.frame5, expl.frame6, expl.frame7, expl.frame8];
 
-function afterLastBattle() {
+function afterLastBattle(gameController) {
 
 	var cutscene = new CutScene();
 
