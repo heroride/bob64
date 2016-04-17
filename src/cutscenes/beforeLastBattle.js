@@ -6,7 +6,7 @@ var BOB_WALK_ANIM   = [252, 253, 254];
 var onion = assets.entities.onion;
 var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
 
-function beforeLastBattle() {
+function beforeLastBattle(gameController) {
 
 	var cutscene = new CutScene();
 
