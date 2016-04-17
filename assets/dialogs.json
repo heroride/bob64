@@ -1,6 +1,6 @@
 {
 	"bobSnack": [
-		{ "who": "bob", "text": "Whew, am I BEAT!\n*grumble*\n\nAnd hungry!\nSure could go for a grilled cheese...\nGuess I'll head home and grab a snack." }
+		{ "who": "bob", "text": "Whew, am I BEAT!\n*grumble*\nAnd hungry!\nI sure could go for a grilled cheese sandwich.\nGuess I'll head home and grab a snack." }
 	],
 	"bobPackage": [
 		{ "who": "bob", "text": "C-could it be?!"}
@@ -9,7 +9,7 @@
 		{ "who": "bob", "text": "It is!"}
 	],
 	"bobApproach": [
-		{ "who": "bob", "text": "'The CHX-2000:\nThe greatest chainsaw\never made!\nIncludes three fairy spirits to provide\npower, speed and durability.\nStrange...\nI must have ordered this about...\nA year ago? To the day, in fact!\n...\n...\nHOLD ON!\nThe fairies were\nsent separately?!\n...\n...\nOne was sent to\n'the cloud shrine',\nanother to 'the water shrine',\nand the last to 'the fire shrine.'\nJust what the heck is going on..."}
+		{ "who": "bob", "text": "'The CHX-2000: The best chainsaw ever made!\nIncludes three fairy spirits to provide\npower, speed and durability...\n...\nHOLD ON!\nThe fairies were\nsent separately?!\n...\n...\nOne was sent to\n'the cloud shrine',\nanother to 'the water shrine',\nand the last to 'the fire shrine.'\nJust what the heck is going on..."}
 	],
 	"bossIntro": [
 		{ "who": "stump", "text": "Sir, we have a problem." },

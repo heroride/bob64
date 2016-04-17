@@ -57,7 +57,7 @@ function intro() {
 	// add a waiting delay of 0.2 seconds
 	cutscene.addDelay(0.2);
 
-	var bobHouseBg = getMap('cave'); // TODO Bob house
+	var bobHouseBg = getMap('house'); // TODO Bob house
 	cutscene.addBackgroundChange(0, bobHouseBg);
 
 	cutscene.enqueue(function () {
