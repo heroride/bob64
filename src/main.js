@@ -54,10 +54,12 @@ for (var i = 0; i < doors.length; i++) {
 // PREPARE CUTSCENES
 
 var CUTSCENES_ANIMATIONS = {
-	intro:       require('./cutscenes/intro.js'),
-	cloudFairy:  require('./cutscenes/cloudFairy.js'),
-	waterFairy:  require('./cutscenes/waterFairy.js'),
-	fireFairy:   require('./cutscenes/fireFairy.js')
+	intro:             require('./cutscenes/intro.js'),
+	cloudFairy:        require('./cutscenes/cloudFairy.js'),
+	waterFairy:        require('./cutscenes/waterFairy.js'),
+	fireFairy:         require('./cutscenes/fireFairy.js'),
+	beforeLastBattle:  require('./cutscenes/beforeLastBattle.js'),
+	afterLastBattle:   require('./cutscenes/afterLastBattle.js')
 };
 
 var cutscenes = assets.cutscenes;
@@ -93,7 +95,7 @@ if (DEBUG) {
 	window.cutscene = function (id) {
 		var cutscene = CUTSCENES_ANIMATIONS[id];
 		if (!cutscene) return console.error('cutscene does not exist: ' + id);
-		gameController.startCutScene(cutscene());
+		gameController.startCutScene(cutscene(gameController));
 	}
 
 	// load level from console

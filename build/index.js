@@ -5414,7 +5414,7 @@ Sound.prototype.stop = function (cb) {
 	return cb && cb(); // TODO: fade-out
 };
 
-},{"./ISound.js":29,"util":61}],32:[function(require,module,exports){
+},{"./ISound.js":29,"util":63}],32:[function(require,module,exports){
 var inherits = require('util').inherits;
 var ISound   = require('./ISound.js');
 
@@ -5797,7 +5797,7 @@ SoundBuffered.prototype.stop = function (cb) {
 };
 
 
-},{"./ISound.js":29,"util":61}],33:[function(require,module,exports){
+},{"./ISound.js":29,"util":63}],33:[function(require,module,exports){
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 /** Set of sound played in sequence each times it triggers
  *  used for animation sfx
@@ -6553,7 +6553,7 @@ function showProgress(load, current, count, percent) {
 cls().paper(1).pen(1).rect(CENTER - HALF_WIDTH - 2, MIDDLE - 4, HALF_WIDTH * 2 + 4, 8); // loading bar
 assetLoader.preloadStaticAssets(onAssetsLoaded, showProgress);
 
-},{"../settings.json":36,"../src/main.js":56,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
+},{"../settings.json":36,"../src/main.js":58,"EventEmitter":1,"Map":2,"TINA":23,"Texture":26,"assetLoader":27,"audio-manager":34}],36:[function(require,module,exports){
 module.exports={
 	"screen": {
 		"width": 64,
@@ -7068,7 +7068,7 @@ Bob.prototype.kill = function (params) {
 
 module.exports = new Bob();
 
-},{"./AABBcollision.js":37,"./Level.js":43,"./entities/ShortAnimation.js":52}],40:[function(require,module,exports){
+},{"./AABBcollision.js":37,"./Level.js":43,"./entities/ShortAnimation.js":54}],40:[function(require,module,exports){
 var TextDisplay    = require('./TextDisplay.js');
 var FadeTransition = require('./FadeTransition.js');
 
@@ -7392,7 +7392,7 @@ GameController.prototype.update = function () {
 	bob.draw();
 };
 
-},{"./Bob.js":39,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":44,"./entities/Entity.js":50,"./entities/ShortAnimation.js":52}],43:[function(require,module,exports){
+},{"./Bob.js":39,"./FadeTransition.js":41,"./Level.js":43,"./TextDisplay.js":44,"./entities/Entity.js":52,"./entities/ShortAnimation.js":54}],43:[function(require,module,exports){
 var tiles         = require('./tiles.js');
 var Onion         = require('./entities/Onion.js');
 var Stump         = require('./entities/Stump.js');
@@ -7462,7 +7462,7 @@ Level.prototype.load = function (id) {
 	this._initBackground(def);
 
 	if (def.cutscene) {
-		this.controller.startCutScene(def.cutscene());
+		this.controller.startCutScene(def.cutscene(this.controller));
 		def.cutscene = null; // make sure to play cutscene only once
 	}
 };
@@ -7617,7 +7617,7 @@ Level.prototype.draw = function () {
 }
 
 module.exports = new Level();
-},{"./entities/Bloc.js":49,"./entities/Onion.js":51,"./entities/SingletonItem.js":53,"./entities/Stump.js":55,"./tiles.js":57}],44:[function(require,module,exports){
+},{"./entities/Bloc.js":51,"./entities/Onion.js":53,"./entities/SingletonItem.js":55,"./entities/Stump.js":57,"./tiles.js":59}],44:[function(require,module,exports){
 TextDisplay = function () {
 	this.textWindow = new Texture(64, 19);
 	this.textBuffer = '';
@@ -7729,14 +7729,21 @@ TextDisplay.prototype._setDialog = function () {
 },{}],45:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
+var ShortAnimation = require('../entities/ShortAnimation.js');
 
-var FAIRY_ANIMATION = [106, 107, 108, 109, 110, 111];
 var BOB_WALK_ANIM   = [252, 253, 254];
 
 var onion = assets.entities.onion;
-var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+var ONION_ANIM = [onion.walk2];
 
-function cloudFairy() {
+var stump = assets.entities.stump;
+var STUMP_ANIM = [stump.walk0];
+
+var expl = assets.entities.explosion;
+var EXPLOSION_ANIMATION = [expl.frame0, expl.frame1, expl.frame2, expl.frame3, expl.frame4, expl.frame5, expl.frame6, expl.frame7, expl.frame8];
+
+function afterLastBattle(gameController) {
+
 	var cutscene = new CutScene();
 
 	//------------------------------------------------------------
@@ -7746,8 +7753,165 @@ function cloudFairy() {
 
 	//------------------------------------------------------------
 	// bob walk in animation
-	var fairy = new AnimatedSprite(FAIRY_ANIMATION, 0.3).setPosition(40, 30);
-	var bob   = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-20, 48);
+	var bob = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(10, 48);
+	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(5, 40);
+	var stumpGuy = new AnimatedSprite(STUMP_ANIM, 0.2).setPosition(15, 40);
+	var explodey = new AnimatedSprite(EXPLOSION_ANIMATION, 0.5).setPosition(15, 40);
+
+	cutscene.addAnimation(function () {
+		// draw the scene
+		cls();
+		draw(background);
+		bob.draw();
+		onionGuy.draw();
+		stumpGuy.draw();
+		//TODO draw boss
+		return true;
+	});
+
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.afterLastBattle);
+
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(0.2);
+
+	cutscene.addAnimation(function () {
+		bob.x += 0.4;
+
+		// draw the scene
+		cls();
+		draw(background);
+		onionGuy.draw();
+		stumpGuy.draw();
+		bob.draw();
+		if (bob.x < 30) {
+			return false;
+		}
+		//TODO draw boss
+		return true;
+	});
+
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.afterLastBattleCont);
+
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(0.2);
+
+	cutscene.addAnimation(function(){
+		cls();
+		draw(background);
+		onionGuy.draw();
+		bob.draw();
+
+		if(explodey.frame < 8){
+			explodey.draw();
+			return false;
+		}
+		
+		return true;
+
+	});
+	
+	//------------------------------------------------------------
+	// add a waiting delay of 0.2 seconds
+	cutscene.addDelay(0.2);
+
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.afterLastBattleFinal);
+
+	//------------------------------------------------------------
+	// add a last fade before going back to the game
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// return the cutscene	
+	return cutscene;
+}
+
+module.exports = afterLastBattle;
+
+},{"../AnimatedSprite.js":38,"../CutScene.js":40,"../entities/ShortAnimation.js":54}],46:[function(require,module,exports){
+var CutScene       = require('../CutScene.js');
+var AnimatedSprite = require('../AnimatedSprite.js');
+
+var BOB_WALK_ANIM   = [252, 253, 254];
+
+var onion = assets.entities.onion;
+var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+
+function beforeLastBattle(gameController) {
+
+	var cutscene = new CutScene();
+
+	//------------------------------------------------------------
+	// clear screen and draw background
+	var background = getMap('bossCutScene'); // TODO
+	cutscene.addBackgroundChange(0);
+
+	//------------------------------------------------------------
+	// bob walk in animation
+	var bob = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(10, 48);
+	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(40, 40);
+	onionGuy.flipH = true;
+
+	cutscene.addAnimation(function () {
+		// draw the scene
+		cls();
+		draw(background);
+		bob.draw();
+		onionGuy.draw();
+		//TODO draw boss
+		return true;
+	});
+
+	//------------------------------------------------------------
+	// display a dialog
+	cutscene.addDialog(assets.dialogs.beforeLastBattle);
+
+	//------------------------------------------------------------
+	// add a last fade before going back to the game
+	cutscene.addFade();
+
+	//------------------------------------------------------------
+	// return the cutscene	
+	return cutscene;
+}
+
+module.exports = beforeLastBattle;
+
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],47:[function(require,module,exports){
+var CutScene       = require('../CutScene.js');
+var AnimatedSprite = require('../AnimatedSprite.js');
+
+var FAIRY_ANIMATION = [106, 107, 108, 109, 110, 111];
+var BOB_WALK_ANIM   = [252, 253, 254];
+
+var onion = assets.entities.onion;
+var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+
+function cloudFairy(gameController) {
+	// give Bob new abilities
+	gameController.bob.canDive       = true;
+	gameController.bob.canDoubleJump = true;
+	gameController.bob.hasCloudFairy = true;
+
+	//------------------------------------------------------------
+	var cutscene = new CutScene();
+
+	//------------------------------------------------------------
+	// clear screen and draw background
+	var background = getMap('cloudShrine');
+	cutscene.addBackgroundChange(6);
+
+	//------------------------------------------------------------
+	// bob walk in animation
+	var fairy = new AnimatedSprite(FAIRY_ANIMATION, 0.3).setPosition(40, 35);
+	var bob   = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-30, 40);
 
 	cutscene.addAnimation(function () {
 		bob.x += 0.4;
@@ -7755,7 +7919,7 @@ function cloudFairy() {
 		cls();
 		draw(background);
 		bob.draw();
-		if (bob.x < 10) {
+		if (bob.x < 18) {
 			fairy.draw();
 			return false;
 		}
@@ -7777,26 +7941,22 @@ function cloudFairy() {
 	cutscene.enqueue(function () {
 		camera(0,0);
 		paper(0).cls();
-		draw(background);
+		background = getMap('bossCutScene');
 	});
-
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(1);
 
 	//------------------------------------------------------------
 	// add an animation.
 	// an animation is a function that will be called every frame until its returns true
-	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(-6, 40);
+	var onionGuy = new AnimatedSprite(ONION_ANIM, 0.2).setPosition(-10, 40);
 	var counter = 0;
 	
 	cutscene.addAnimation(function () {
-		if (++counter % 60 > 20) return false;
+		if (++counter % 45 > 20) return false;
 		onionGuy.x += 0.25;
 		cls();
 		draw(background);
 		onionGuy.draw();
-	// TODO draw the boss
+		// TODO draw the boss
 		if (onionGuy.x < 13) return false; // continue the animation
 		return true; // ends the animation
 	});
@@ -7818,7 +7978,7 @@ function cloudFairy() {
 
 module.exports = cloudFairy;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],46:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],48:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
 
@@ -7828,18 +7988,22 @@ var BOB_WALK_ANIM   = [252, 253, 254];
 var onion = assets.entities.onion;
 var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
 
-function fireFairy() {
+function fireFairy(gameController) {
+	// give Bob new abilities
+	gameController.bob.hasFireFairy = true;
+
+	//------------------------------------------------------------
 	var cutscene = new CutScene();
 
 	//------------------------------------------------------------
 	// clear screen and draw background
-	var background = getMap('ground0'); // TODO
+	var background = getMap('fireShrine');
 	cutscene.addBackgroundChange(0);
 
 	//------------------------------------------------------------
 	// bob walk in animation
-	var fairy = new AnimatedSprite(FAIRY_ANIMATION, 0.3).setPosition(40, 30);
-	var bob   = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-20, 48);
+	var fairy = new AnimatedSprite(FAIRY_ANIMATION, 0.3).setPosition(40, 35);
+	var bob   = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-30, 40);
 
 	cutscene.addAnimation(function () {
 		bob.x += 0.4;
@@ -7868,8 +8032,9 @@ function fireFairy() {
 	cutscene.addBackgroundChange(0);
 
 	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
+	cutscene.enqueue(function () {
+		background = getMap('bossCutScene');
+	});
 
 	//------------------------------------------------------------
 	// add an animation.
@@ -7909,39 +8074,35 @@ function fireFairy() {
 
 module.exports = fireFairy;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],47:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],49:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
 
-var BOB_WALK_ANIM   = [252, 253, 254];
 
-var onion = assets.entities.onion;
-var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
+var ONION         = assets.entities.onion;
+var ONION_ANIM    = [ONION.walk0, ONION.walk1, ONION.walk2, ONION.walk3, ONION.walk4];
+var BOB_WALK_ANIM = [252, 253, 254];
+var BOB_SPEED     = 1;
 
-function intro() {
+
+function intro(gameController) {
 
 	var cutscene = new CutScene();
 
 	//------------------------------------------------------------
 	// clear screen and draw background
-	var background = getMap('ground0'); // TODO
-	cutscene.addBackgroundChange(0);
+	var background = getMap('introCutScene');
+	cutscene.addBackgroundChange(6);
 
 	//------------------------------------------------------------
 	// bob walk in animation
-	var bob = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-20, 48);
+	var bob = new AnimatedSprite(BOB_WALK_ANIM, 0.4).setPosition(36, 40);
+	bob.flipH = true;
 
-	cutscene.addAnimation(function () {
-		bob.x += 0.4;
-
-		// draw the scene
+	cutscene.enqueue(function () {
 		cls();
 		draw(background);
 		bob.draw();
-		if (bob.x < 10) {
-			return false;
-		}
-		return true;
 	});
 	
 	//------------------------------------------------------------
@@ -7949,89 +8110,62 @@ function intro() {
 	cutscene.addDialog(assets.dialogs.bobSnack);
 
 	cutscene.addAnimation(function () {
-		bob.x += 0.4;
+		bob.x += BOB_SPEED;
+		bob.flipH = false;
 
 		// draw the scene
 		cls();
 		draw(background);
 		bob.draw();
-		if (bob.x < 65) {
-			return false;
-		}
-		return true;
+		return (bob.x >= 65);
 	});
 
 	//------------------------------------------------------------
 	// add a last fade before going to next scene
 	cutscene.addFade();
 
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
-
-	var bobHouseBg = getMap('cave'); // TODO Bob house
-	cutscene.addBackgroundChange(0, bobHouseBg);
-
 	cutscene.enqueue(function () {
-		camera(0,0);
-		paper(0).cls();
-		draw(bobHouseBg);
-		bob.setPosition(-20,48);
+		paper(6);
+		background = getMap('house');
+		bob.setPosition(104, 56);
 	});
 
 	cutscene.addAnimation(function () {
-		bob.x += 0.4;
-
+		bob.x += BOB_SPEED;
 		// draw the scene
+		camera(bob.x - 28, bob.y - 48);
 		cls();
-		draw(bobHouseBg);
+		draw(background);
 		bob.draw();
-		if (bob.x < 10) {
-			return false;
-		}
-		return true;
+		return (bob.x >= 114);
 	});
 
 	//------------------------------------------------------------
 	// dialog
 	cutscene.addDialog(assets.dialogs.bobPackage);
 
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
-
 	cutscene.addAnimation(function () {
-		bob.x += 0.4;
-
+		bob.x += BOB_SPEED;
 		// draw the scene
+		camera(bob.x - 28, bob.y - 48);
 		cls();
-		draw(bobHouseBg);
+		draw(background);
 		bob.draw();
-		if (bob.x < 15) {
-			return false;
-		}
-		return true;
+		return (bob.x >= 140);
 	});
 
 	//------------------------------------------------------------
 	// dialog
 	cutscene.addDialog(assets.dialogs.bobConfirm);
 
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
-
 	cutscene.addAnimation(function () {
-		bob.x += 0.4;
-
+		bob.x += BOB_SPEED;
 		// draw the scene
+		camera(bob.x - 28, bob.y - 48);
 		cls();
-		draw(bobHouseBg);
+		draw(background);
 		bob.draw();
-		if (bob.x < 40) {
-			return false;
-		}
-		return true;
+		return (bob.x >= 152);
 	});
 
 	//------------------------------------------------------------
@@ -8041,10 +8175,6 @@ function intro() {
 	//------------------------------------------------------------
 	// add a last fade before going to next scene
 	cutscene.addFade();
-
-	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
 
 	var bossBackground = getMap('bossCutScene');
 	cutscene.addBackgroundChange(0, bossBackground);
@@ -8059,8 +8189,7 @@ function intro() {
 		draw(bossBackground);
 		onionGuy.draw();
 		// TODO draw the boss
-		if (onionGuy.x < 10) return false; // continue the animation
-		return true; // ends the animation
+		return (onionGuy.x >= 10); // ends the animation
 	});
 
 	//------------------------------------------------------------
@@ -8078,7 +8207,7 @@ function intro() {
 
 module.exports = intro;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],48:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],50:[function(require,module,exports){
 var CutScene       = require('../CutScene.js');
 var AnimatedSprite = require('../AnimatedSprite.js');
 
@@ -8088,18 +8217,22 @@ var BOB_WALK_ANIM   = [252, 253, 254];
 var onion = assets.entities.onion;
 var ONION_ANIM = [onion.walk0, onion.walk1, onion.walk2, onion.walk3, onion.walk4];
 
-function waterFairy() {
+function waterFairy(gameController) {
+	// give Bob new abilities
+	gameController.bob.hasWaterFairy = true;
+
+	//------------------------------------------------------------
 	var cutscene = new CutScene();
 
 	//------------------------------------------------------------
 	// clear screen and draw background
-	var background = getMap('ground0'); // TODO
+	var background = getMap('waterShrine');
 	cutscene.addBackgroundChange(0);
 
 	//------------------------------------------------------------
 	// bob walk in animation
-	var fairy = new AnimatedSprite(FAIRY_ANIMATION, 0.3).setPosition(40, 30);
-	var bob   = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-20, 48);
+	var fairy = new AnimatedSprite(FAIRY_ANIMATION, 0.3).setPosition(40, 35);
+	var bob   = new AnimatedSprite(BOB_WALK_ANIM, 0.2).setPosition(-30, 40);
 
 	cutscene.addAnimation(function () {
 		bob.x += 0.4;
@@ -8127,8 +8260,9 @@ function waterFairy() {
 	cutscene.addBackgroundChange(0);
 
 	//------------------------------------------------------------
-	// add a waiting delay of 0.2 seconds
-	cutscene.addDelay(0.2);
+	cutscene.enqueue(function () {
+		background = getMap('bossCutScene');
+	});
 
 	//------------------------------------------------------------
 	// add an animation.
@@ -8147,7 +8281,6 @@ function waterFairy() {
 	//------------------------------------------------------------
 	cutscene.enqueue(function () {
 		// turn the light on
-		background = getMap('bossCutScene'); // TODO
 		cls();
 		draw(background);
 		onionGuy.draw();
@@ -8171,7 +8304,7 @@ function waterFairy() {
 
 module.exports = waterFairy;
 
-},{"../AnimatedSprite.js":38,"../CutScene.js":40}],49:[function(require,module,exports){
+},{"../AnimatedSprite.js":38,"../CutScene.js":40}],51:[function(require,module,exports){
 var Entity         = require('./Entity.js');
 var AABBcollision  = require('../AABBcollision.js');
 var tiles          = require('../tiles.js');
@@ -8245,7 +8378,7 @@ Bloc.prototype.animate = function () {
 	sprite(this.sprite, this.x, this.y);
 };
 
-},{"../AABBcollision.js":37,"../tiles.js":57,"./Entity.js":50,"./ShortAnimation.js":52}],50:[function(require,module,exports){
+},{"../AABBcollision.js":37,"../tiles.js":59,"./Entity.js":52,"./ShortAnimation.js":54}],52:[function(require,module,exports){
 var ShortAnimation = require('./ShortAnimation.js');
 
 var TILE_WIDTH  = settings.spriteSize[0];
@@ -8402,7 +8535,7 @@ Entity.prototype.levelCollisions = function (level, bob) {
 	this.y = y;
 };
 
-},{"./ShortAnimation.js":52}],51:[function(require,module,exports){
+},{"./ShortAnimation.js":54}],53:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
@@ -8552,7 +8685,7 @@ Onion.prototype.hit = function (attacker) {
 	this.sy = -2;
 };
 
-},{"../AABBcollision.js":37,"./Entity.js":50}],52:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":52}],54:[function(require,module,exports){
 function ShortAnimation(animation, animSpeed) {
 	this.x = 0;
 	this.y = 0;
@@ -8593,7 +8726,7 @@ ShortAnimation.prototype.setPosition = function (x, y) {
 	this.y = y;
 	return this;
 };
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
@@ -8642,7 +8775,7 @@ SingletonItem.prototype.setPosition = function (x ,y) {
 	this.y = y;
 	return this;
 };
-},{"../AABBcollision.js":37,"./Entity.js":50}],54:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":52}],56:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var AABBcollision = require('../AABBcollision.js');
 
@@ -8706,7 +8839,7 @@ Spit.prototype.setPosition = function (x ,y) {
 	this.y = y;
 	return this;
 };
-},{"../AABBcollision.js":37,"./Entity.js":50}],55:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":52}],57:[function(require,module,exports){
 var Entity        = require('./Entity.js');
 var Spit          = require('./Spit.js');
 var AABBcollision = require('../AABBcollision.js');
@@ -8865,7 +8998,7 @@ Stump.prototype.spit = function () {
 	spit.setDirection(this.direction).setPosition(this.x, this.y + 3);
 	this.controller.addEntity(spit);
 };
-},{"../AABBcollision.js":37,"./Entity.js":50,"./Spit.js":54}],56:[function(require,module,exports){
+},{"../AABBcollision.js":37,"./Entity.js":52,"./Spit.js":56}],58:[function(require,module,exports){
 var DEBUG = true;
 
 //▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -8922,10 +9055,12 @@ for (var i = 0; i < doors.length; i++) {
 // PREPARE CUTSCENES
 
 var CUTSCENES_ANIMATIONS = {
-	intro:       require('./cutscenes/intro.js'),
-	cloudFairy:  require('./cutscenes/cloudFairy.js'),
-	waterFairy:  require('./cutscenes/waterFairy.js'),
-	fireFairy:   require('./cutscenes/fireFairy.js')
+	intro:             require('./cutscenes/intro.js'),
+	cloudFairy:        require('./cutscenes/cloudFairy.js'),
+	waterFairy:        require('./cutscenes/waterFairy.js'),
+	fireFairy:         require('./cutscenes/fireFairy.js'),
+	beforeLastBattle:  require('./cutscenes/beforeLastBattle.js'),
+	afterLastBattle:   require('./cutscenes/afterLastBattle.js')
 };
 
 var cutscenes = assets.cutscenes;
@@ -8961,7 +9096,7 @@ if (DEBUG) {
 	window.cutscene = function (id) {
 		var cutscene = CUTSCENES_ANIMATIONS[id];
 		if (!cutscene) return console.error('cutscene does not exist: ' + id);
-		gameController.startCutScene(cutscene());
+		gameController.startCutScene(cutscene(gameController));
 	}
 
 	// load level from console
@@ -8991,7 +9126,7 @@ exports.update = function () {
 	gameController.update();
 };
 
-},{"./Bob.js":39,"./GameController.js":42,"./cutscenes/cloudFairy.js":45,"./cutscenes/fireFairy.js":46,"./cutscenes/intro.js":47,"./cutscenes/waterFairy.js":48}],57:[function(require,module,exports){
+},{"./Bob.js":39,"./GameController.js":42,"./cutscenes/afterLastBattle.js":45,"./cutscenes/beforeLastBattle.js":46,"./cutscenes/cloudFairy.js":47,"./cutscenes/fireFairy.js":48,"./cutscenes/intro.js":49,"./cutscenes/waterFairy.js":50}],59:[function(require,module,exports){
 
 var EMPTY   = exports.EMPTY   = { isEmpty: true,  isSolid: false, isTopSolid: false, isWater: 0 };
 var SOLID   = exports.SOLID   = { isEmpty: false, isSolid: true,  isTopSolid: true,  isWater: 0 };
@@ -9025,7 +9160,7 @@ exports.getTileFromMapItem = function (mapItem) {
 	}
 };
 
-},{}],58:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -9050,7 +9185,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],59:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -9143,14 +9278,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],60:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],61:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -9740,4 +9875,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":60,"_process":59,"inherits":58}]},{},[35]);
+},{"./support/isBuffer":62,"_process":61,"inherits":60}]},{},[35]);

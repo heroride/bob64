@@ -67,7 +67,7 @@ Level.prototype.load = function (id) {
 	this._initBackground(def);
 
 	if (def.cutscene) {
-		this.controller.startCutScene(def.cutscene());
+		this.controller.startCutScene(def.cutscene(this.controller));
 		def.cutscene = null; // make sure to play cutscene only once
 	}
 };
